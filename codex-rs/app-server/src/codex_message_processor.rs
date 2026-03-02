@@ -167,7 +167,7 @@ use codex_app_server_protocol::WindowsSandboxSetupCompletedNotification;
 use codex_app_server_protocol::WindowsSandboxSetupMode;
 use codex_app_server_protocol::WindowsSandboxSetupStartParams;
 use codex_app_server_protocol::WindowsSandboxSetupStartResponse;
-use codex_app_server_protocol::build_turns_from_rollout_items;
+use codex_app_server_protocol::build_thread_history_from_rollout_items;
 use codex_arg0::Arg0DispatchPaths;
 use codex_backend_client::Client as BackendClient;
 use codex_chatgpt::connectors;
@@ -2029,16 +2029,21 @@ impl CodexMessageProcessor {
             Ok(new_conv) => {
                 let NewThread {
                     thread_id,
-                    thread,
+                    thread: loaded_thread,
                     session_configured,
                     ..
                 } = new_conv;
-                let config_snapshot = thread.config_snapshot().await;
+                let config_snapshot = loaded_thread.config_snapshot().await;
                 let mut thread = build_thread_from_snapshot(
                     thread_id,
                     &config_snapshot,
                     session_configured.rollout_path.clone(),
                 );
+                if let Some(rollout_path) = thread.path.clone()
+                    && let Ok(items) = read_rollout_items_from_rollout(rollout_path.as_path()).await
+                {
+                    thread.turns = build_thread_history_from_rollout_items(&items);
+                }
 
                 // Auto-attach a thread listener when starting a thread.
                 // Use the same behavior as the v1 API, with opt-in support for raw item events.
@@ -2754,20 +2759,24 @@ impl CodexMessageProcessor {
         };
         self.attach_thread_name(thread_uuid, &mut thread).await;
 
-        if include_turns && let Some(rollout_path) = rollout_path.as_ref() {
+        if let Some(rollout_path) = rollout_path.as_ref() {
             match read_rollout_items_from_rollout(rollout_path).await {
                 Ok(items) => {
-                    thread.turns = build_turns_from_rollout_items(&items);
+                    if include_turns {
+                        thread.turns = build_thread_history_from_rollout_items(&items);
+                    }
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                    self.send_invalid_request_error(
-                        request_id,
-                        format!(
-                            "thread {thread_uuid} is not materialized yet; includeTurns is unavailable before first user message"
-                        ),
-                    )
-                    .await;
-                    return;
+                    if include_turns {
+                        self.send_invalid_request_error(
+                            request_id,
+                            format!(
+                                "thread {thread_uuid} is not materialized yet; includeTurns is unavailable before first user message"
+                            ),
+                        )
+                        .await;
+                        return;
+                    }
                 }
                 Err(err) => {
                     self.send_internal_error(
@@ -3249,7 +3258,7 @@ impl CodexMessageProcessor {
         };
         match read_rollout_items_from_rollout(rollout_path).await {
             Ok(items) => {
-                thread.turns = build_turns_from_rollout_items(&items);
+                thread.turns = build_thread_history_from_rollout_items(&items);
                 self.attach_thread_name(thread_id, &mut thread).await;
                 Some(thread)
             }
@@ -3478,7 +3487,7 @@ impl CodexMessageProcessor {
         // forked thread names do not inherit the source thread name
         match read_rollout_items_from_rollout(rollout_path.as_path()).await {
             Ok(items) => {
-                thread.turns = build_turns_from_rollout_items(&items);
+                thread.turns = build_thread_history_from_rollout_items(&items);
             }
             Err(err) => {
                 self.send_internal_error(
@@ -5415,6 +5424,7 @@ impl CodexMessageProcessor {
                 let turn = Turn {
                     id: turn_id.clone(),
                     items: vec![],
+                    hook_runs: vec![],
                     error: None,
                     status: TurnStatus::InProgress,
                 };
@@ -5516,6 +5526,7 @@ impl CodexMessageProcessor {
         Turn {
             id: turn_id,
             items,
+            hook_runs: Vec::new(),
             error: None,
             status: TurnStatus::InProgress,
         }
@@ -6355,7 +6366,6 @@ async fn handle_pending_thread_resume_request(
             return;
         }
     };
-
     has_in_progress_turn = has_in_progress_turn
         || thread
             .turns
@@ -6413,15 +6423,16 @@ async fn load_thread_for_running_resume_response(
             )
         })?;
 
-    let mut turns = read_rollout_items_from_rollout(rollout_path)
+    let history = read_rollout_items_from_rollout(rollout_path)
         .await
-        .map(|items| build_turns_from_rollout_items(&items))
+        .map(|items| build_thread_history_from_rollout_items(&items))
         .map_err(|err| {
             format!(
                 "failed to load rollout `{}` for thread {conversation_id}: {err}",
                 rollout_path.display()
             )
         })?;
+    let mut turns = history;
     if let Some(active_turn) = active_turn {
         merge_turn_history_with_active_turn(&mut turns, active_turn.clone());
     }

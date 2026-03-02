@@ -36,6 +36,8 @@ use codex_app_server_protocol::FileChangeOutputDeltaNotification;
 use codex_app_server_protocol::FileChangeRequestApprovalParams;
 use codex_app_server_protocol::FileChangeRequestApprovalResponse;
 use codex_app_server_protocol::FileUpdateChange;
+use codex_app_server_protocol::HookCompletedNotification;
+use codex_app_server_protocol::HookStartedNotification;
 use codex_app_server_protocol::InterruptConversationResponse;
 use codex_app_server_protocol::ItemCompletedNotification;
 use codex_app_server_protocol::ItemStartedNotification;
@@ -74,7 +76,7 @@ use codex_app_server_protocol::TurnInterruptResponse;
 use codex_app_server_protocol::TurnPlanStep;
 use codex_app_server_protocol::TurnPlanUpdatedNotification;
 use codex_app_server_protocol::TurnStatus;
-use codex_app_server_protocol::build_turns_from_rollout_items;
+use codex_app_server_protocol::build_thread_history_from_rollout_items;
 use codex_app_server_protocol::convert_patch_changes;
 use codex_core::CodexThread;
 use codex_core::ThreadManager;
@@ -154,6 +156,30 @@ pub(crate) async fn apply_bespoke_event_handling(
                 .note_turn_completed(&conversation_id.to_string(), turn_failed)
                 .await;
             handle_turn_complete(conversation_id, event_turn_id, &outgoing, &thread_state).await;
+        }
+        EventMsg::HookStarted(event) => {
+            if let ApiVersion::V2 = api_version {
+                let notification = HookStartedNotification {
+                    thread_id: conversation_id.to_string(),
+                    turn_id: event.turn_id,
+                    run: event.run.into(),
+                };
+                outgoing
+                    .send_server_notification(ServerNotification::HookStarted(notification))
+                    .await;
+            }
+        }
+        EventMsg::HookCompleted(event) => {
+            if let ApiVersion::V2 = api_version {
+                let notification = HookCompletedNotification {
+                    thread_id: conversation_id.to_string(),
+                    turn_id: event.turn_id,
+                    run: event.run.into(),
+                };
+                outgoing
+                    .send_server_notification(ServerNotification::HookCompleted(notification))
+                    .await;
+            }
         }
         EventMsg::Warning(_warning_event) => {}
         EventMsg::ModelReroute(event) => {
@@ -1259,7 +1285,7 @@ pub(crate) async fn apply_bespoke_event_handling(
                         let mut thread = summary_to_thread(summary);
                         match read_rollout_items_from_rollout(rollout_path.as_path()).await {
                             Ok(items) => {
-                                thread.turns = build_turns_from_rollout_items(&items);
+                                thread.turns = build_thread_history_from_rollout_items(&items);
                                 thread.status = thread_watch_manager
                                     .loaded_status_for_thread(&thread.id)
                                     .await;
@@ -1403,6 +1429,7 @@ async fn emit_turn_completed_with_status(
         turn: Turn {
             id: event_turn_id,
             items: vec![],
+            hook_runs: vec![],
             error,
             status,
         },

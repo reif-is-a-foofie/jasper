@@ -1,0 +1,33 @@
+{
+  "$ref": "#/definitions/stop.command.output",
+  "definitions": {
+    "stop.command.output": {
+      "type": "object",
+      "properties": {
+        "continue": {
+          "type": "boolean"
+        },
+        "stopReason": {
+          "type": "string"
+        },
+        "suppressOutput": {
+          "type": "boolean"
+        },
+        "systemMessage": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "block"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

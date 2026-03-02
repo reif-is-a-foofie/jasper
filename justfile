@@ -82,6 +82,10 @@ write-config-schema:
 write-app-server-schema *args:
     cargo run -p codex-app-server-protocol --bin write_schema_fixtures -- "$@"
 
+[no-cd]
+write-hooks-schema:
+    node ./scripts/write-hooks-schema.mjs
+
 # Tail logs from the state SQLite database
 log *args:
     if [ "${1:-}" = "--" ]; then shift; fi; cargo run -p codex-state --bin logs_client -- "$@"

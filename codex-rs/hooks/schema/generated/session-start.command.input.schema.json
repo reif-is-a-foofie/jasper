@@ -1,0 +1,58 @@
+{
+  "$ref": "#/definitions/session-start.command.input",
+  "definitions": {
+    "session-start.command.input": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string"
+        },
+        "transcript_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "hook_event_name": {
+          "type": "string",
+          "const": "SessionStart"
+        },
+        "model": {
+          "type": "string"
+        },
+        "permission_mode": {
+          "type": "string",
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "dontAsk",
+            "bypassPermissions"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "startup",
+            "resume",
+            "clear"
+          ]
+        }
+      },
+      "required": [
+        "session_id",
+        "transcript_path",
+        "cwd",
+        "hook_event_name",
+        "model",
+        "permission_mode",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -1,0 +1,40 @@
+{
+  "$ref": "#/definitions/session-start.command.output",
+  "definitions": {
+    "session-start.command.output": {
+      "type": "object",
+      "properties": {
+        "continue": {
+          "type": "boolean"
+        },
+        "stopReason": {
+          "type": "string"
+        },
+        "suppressOutput": {
+          "type": "boolean"
+        },
+        "systemMessage": {
+          "type": "string"
+        },
+        "hookSpecificOutput": {
+          "type": "object",
+          "properties": {
+            "hookEventName": {
+              "type": "string",
+              "const": "SessionStart"
+            },
+            "additionalContext": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "hookEventName"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

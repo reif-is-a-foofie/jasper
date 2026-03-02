@@ -4,10 +4,13 @@
   "description": "Tools for repo-wide maintenance.",
   "scripts": {
     "format": "prettier --check *.json *.md docs/*.md .github/workflows/*.yml **/*.js",
-    "format:fix": "prettier --write *.json *.md docs/*.md .github/workflows/*.yml **/*.js"
+    "format:fix": "prettier --write *.json *.md docs/*.md .github/workflows/*.yml **/*.js",
+    "write-hooks-schema": "node ./scripts/write-hooks-schema.mjs"
   },
   "devDependencies": {
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.6"
   },
   "resolutions": {
     "braces": "^3.0.3",
