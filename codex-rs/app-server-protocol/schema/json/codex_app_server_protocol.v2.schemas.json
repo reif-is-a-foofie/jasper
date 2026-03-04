@@ -13818,7 +13818,7 @@
           "description": "Override the reasoning effort for this turn and subsequent turns."
         },
         "ephemeralContext": {
-          "description": "Turn-scoped model-visible context. This is not part of the durable thread baseline and is not returned by `thread/read`.",
+          "description": "Additional context for this turn only, such as editor or IDE state. Codex sees it when handling the current message, but it is ephemeral: send a fresh snapshot on later turns instead of expecting it to carry forward automatically.",
           "items": {
             "$ref": "#/definitions/EphemeralContext"
           },

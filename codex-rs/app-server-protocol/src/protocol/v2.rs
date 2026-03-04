@@ -2956,8 +2956,10 @@ impl From<EphemeralContext> for CoreEphemeralContext {
 pub struct TurnStartParams {
     pub thread_id: String,
     pub input: Vec<UserInput>,
-    /// Turn-scoped model-visible context. This is not part of the durable
-    /// thread baseline and is not returned by `thread/read`.
+    /// Additional context for this turn only, such as editor or IDE state.
+    /// Codex sees it when handling the current message, but it is ephemeral:
+    /// send a fresh snapshot on later turns instead of expecting it to carry
+    /// forward automatically.
     #[ts(optional = nullable)]
     pub ephemeral_context: Option<Vec<EphemeralContext>>,
     /// Override the working directory for this turn and subsequent turns.
