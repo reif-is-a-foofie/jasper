@@ -58,6 +58,7 @@ async fn user_message_item_is_emitted() -> anyhow::Result<()> {
     codex
         .submit(Op::UserInput {
             items: vec![expected_input.clone()],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -114,6 +115,7 @@ async fn assistant_message_item_is_emitted() -> anyhow::Result<()> {
                 text: "please summarize results".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -172,6 +174,7 @@ async fn reasoning_item_is_emitted() -> anyhow::Result<()> {
                 text: "explain your reasoning".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -231,6 +234,7 @@ async fn web_search_item_is_emitted() -> anyhow::Result<()> {
                 text: "find the weather".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -289,6 +293,7 @@ async fn agent_message_content_delta_has_item_metadata() -> anyhow::Result<()> {
                 text: "please stream text".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -931,6 +936,7 @@ async fn reasoning_content_delta_has_item_metadata() -> anyhow::Result<()> {
                 text: "reason through it".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;
@@ -990,6 +996,7 @@ async fn reasoning_raw_content_delta_respects_flag() -> anyhow::Result<()> {
                 text: "show raw reasoning".into(),
                 text_elements: Vec::new(),
             }],
+            ephemeral_context: Vec::new(),
             final_output_json_schema: None,
         })
         .await?;

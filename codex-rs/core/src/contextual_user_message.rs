@@ -13,6 +13,8 @@ use codex_protocol::models::ContentItem;
 use codex_protocol::models::DeveloperInstructions;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::models::ResponseItem;
+use codex_protocol::protocol::ADDITIONAL_CONTEXT_CLOSE_TAG;
+use codex_protocol::protocol::ADDITIONAL_CONTEXT_OPEN_TAG;
 use codex_protocol::protocol::ENVIRONMENT_CONTEXT_CLOSE_TAG;
 use codex_protocol::protocol::ENVIRONMENT_CONTEXT_OPEN_TAG;
 use codex_protocol::protocol::TurnContextItem;
@@ -29,6 +31,8 @@ pub(crate) const SUBAGENTS_OPEN_TAG: &str = "<subagents>";
 pub(crate) const SUBAGENTS_CLOSE_TAG: &str = "</subagents>";
 pub(crate) const SUBAGENT_NOTIFICATION_OPEN_TAG: &str = "<subagent_notification>";
 pub(crate) const SUBAGENT_NOTIFICATION_CLOSE_TAG: &str = "</subagent_notification>";
+pub(crate) const ADDITIONAL_CONTEXT_OPEN_MARKER: &str = ADDITIONAL_CONTEXT_OPEN_TAG;
+pub(crate) const ADDITIONAL_CONTEXT_CLOSE_MARKER: &str = ADDITIONAL_CONTEXT_CLOSE_TAG;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ModelVisibleEnvelope {
@@ -185,6 +189,11 @@ pub(crate) const USER_SHELL_COMMAND_FRAGMENT: ModelVisibleFragmentSpec =
     );
 pub(crate) const TURN_ABORTED_FRAGMENT: ModelVisibleFragmentSpec =
     ModelVisibleFragmentSpec::contextual_user(TURN_ABORTED_OPEN_TAG, TURN_ABORTED_CLOSE_TAG);
+pub(crate) const ADDITIONAL_CONTEXT_FRAGMENT: ModelVisibleFragmentSpec =
+    ModelVisibleFragmentSpec::contextual_user(
+        ADDITIONAL_CONTEXT_OPEN_MARKER,
+        ADDITIONAL_CONTEXT_CLOSE_MARKER,
+    );
 
 const CONTEXTUAL_USER_FRAGMENTS: &[ModelVisibleFragmentSpec] = &[
     AGENTS_MD_FRAGMENT,
@@ -192,6 +201,7 @@ const CONTEXTUAL_USER_FRAGMENTS: &[ModelVisibleFragmentSpec] = &[
     SKILL_FRAGMENT,
     USER_SHELL_COMMAND_FRAGMENT,
     TURN_ABORTED_FRAGMENT,
+    ADDITIONAL_CONTEXT_FRAGMENT,
 ];
 
 pub(crate) fn is_contextual_user_fragment(content_item: &ContentItem) -> bool {
@@ -233,6 +243,13 @@ mod tests {
     }
 
     #[test]
+    fn detects_additional_context_fragment() {
+        assert!(is_contextual_user_fragment(&ContentItem::InputText {
+            text:
+                "<additional_context>\n<title>Context from my editor</title>\n</additional_context>"
+                    .to_string(),
+        }));
+    }
     fn ignores_regular_user_text() {
         assert!(!is_contextual_user_fragment(&ContentItem::InputText {
             text: "hello".to_string(),

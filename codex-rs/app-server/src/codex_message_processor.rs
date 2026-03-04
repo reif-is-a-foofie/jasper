@@ -5021,6 +5021,12 @@ impl CodexMessageProcessor {
             .into_iter()
             .map(V2UserInput::into_core)
             .collect();
+        let ephemeral_context = params
+            .ephemeral_context
+            .unwrap_or_default()
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         let has_any_overrides = params.cwd.is_some()
             || params.approval_policy.is_some()
@@ -5054,6 +5060,7 @@ impl CodexMessageProcessor {
         let turn_id = thread
             .submit(Op::UserInput {
                 items: mapped_items,
+                ephemeral_context,
                 final_output_json_schema: params.output_schema,
             })
             .await;

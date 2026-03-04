@@ -251,6 +251,9 @@ pub(crate) fn build_settings_update_items(
     if let Some(environment_update) = build_environment_update_fragment(previous, next, shell) {
         contextual_user_envelope.push_fragment(environment_update);
     }
+    for ephemeral_context in next.ephemeral_context.iter().cloned() {
+        contextual_user_envelope.push_fragment(ephemeral_context);
+    }
 
     let mut items = Vec::with_capacity(2);
     if let Some(developer_message) = developer_envelope.build() {

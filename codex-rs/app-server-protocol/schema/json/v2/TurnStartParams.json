@@ -82,6 +82,23 @@
       ],
       "type": "object"
     },
+    "EphemeralContext": {
+      "properties": {
+        "text": {
+          "description": "Free-form text payload for turn-scoped model-visible context.",
+          "type": "string"
+        },
+        "title": {
+          "description": "Human-readable title for turn-scoped model-visible context.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "title"
+      ],
+      "type": "object"
+    },
     "ModeKind": {
       "description": "Initial collaboration mode to use when the TUI starts.",
       "enum": [
@@ -511,6 +528,16 @@
         }
       ],
       "description": "Override the reasoning effort for this turn and subsequent turns."
+    },
+    "ephemeralContext": {
+      "description": "Turn-scoped model-visible context. This is not part of the durable thread baseline and is not returned by `thread/read`.",
+      "items": {
+        "$ref": "#/definitions/EphemeralContext"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
     },
     "input": {
       "items": {
