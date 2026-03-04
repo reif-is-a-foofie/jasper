@@ -9,7 +9,6 @@ use crate::features::Feature;
 use crate::sandboxing::SandboxPermissions;
 use crate::shell::ShellType;
 use crate::skills::SkillMetadata;
-use crate::skills::permissions::compile_permission_profile;
 use crate::tools::runtimes::ExecveSessionApproval;
 use crate::tools::runtimes::build_command_spec;
 use crate::tools::sandboxing::SandboxAttempt;
@@ -228,15 +227,13 @@ impl CoreShellActionProvider {
     }
 
     fn skill_escalation_execution(skill: &SkillMetadata) -> EscalationExecution {
-        compile_permission_profile(skill.permission_profile.clone())
-            .map(|permissions| {
-                EscalationExecution::Permissions(EscalationPermissions::Permissions(
-                    EscalatedPermissions {
-                        sandbox_policy: permissions.sandbox_policy.get().clone(),
-                        macos_seatbelt_profile_extensions: permissions
-                            .macos_seatbelt_profile_extensions
-                            .clone(),
-                    },
+        skill
+            .permission_profile
+            .clone()
+            .filter(|permission_profile| !permission_profile.is_empty())
+            .map(|permission_profile| {
+                EscalationExecution::Permissions(EscalationPermissions::PermissionProfile(
+                    permission_profile,
                 ))
             })
             .unwrap_or(EscalationExecution::TurnDefault)
@@ -718,15 +715,19 @@ impl ShellCommandExecutor for CoreShellCommandExecutor {
             )?,
             EscalationExecution::Permissions(EscalationPermissions::PermissionProfile(
                 permission_profile,
-            )) => self.prepare_sandboxed_exec(
-                command,
-                workdir,
-                env,
-                &self.sandbox_policy,
-                Some(permission_profile),
-                None,
-            )?,
+            )) => {
+                // Merge additive permissions into the existing turn/request sandbox policy.
+                self.prepare_sandboxed_exec(
+                    command,
+                    workdir,
+                    env,
+                    &self.sandbox_policy,
+                    Some(permission_profile),
+                    None,
+                )?
+            }
             EscalationExecution::Permissions(EscalationPermissions::Permissions(permissions)) => {
+                // Use a fully specified sandbox policy instead of merging into the turn policy.
                 self.prepare_sandboxed_exec(
                     command,
                     workdir,
