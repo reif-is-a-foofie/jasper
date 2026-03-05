@@ -250,6 +250,8 @@ mod tests {
                     .to_string(),
         }));
     }
+
+    #[test]
     fn ignores_regular_user_text() {
         assert!(!is_contextual_user_fragment(&ContentItem::InputText {
             text: "hello".to_string(),
