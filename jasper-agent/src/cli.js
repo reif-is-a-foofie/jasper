@@ -2,6 +2,7 @@
 
 import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
+import { createToolRegistry } from "../../jasper-tools/src/registry.js";
 import { createJasperRuntime } from "./runtime.js";
 
 function printUsage() {
@@ -11,6 +12,8 @@ function printUsage() {
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory semantic QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
+  node jasper-agent/src/cli.js tools list [--identity PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js tools run TOOL_ID [--identity PATH] [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE] [--query TEXT]
 `);
 }
 
@@ -59,6 +62,11 @@ function parseArgs(argv) {
     }
     if (arg === "--source") {
       options.source = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--query") {
+      options.query = args[index + 1];
       index += 1;
       continue;
     }
@@ -134,6 +142,40 @@ async function main() {
           source: memoryOptions.source,
         }),
       );
+      return;
+    }
+
+    printUsage();
+    return;
+  }
+
+  if (command === "tools") {
+    const [toolCommand, ...toolArgs] = rest;
+    const toolOptions = parseArgs(toolArgs);
+    const registry = createToolRegistry({
+      identityPath: toolOptions.identityPath,
+      memoryRoot: toolOptions.memoryRoot,
+    });
+
+    if (toolCommand === "list") {
+      printJson(registry.listTools());
+      return;
+    }
+
+    if (toolCommand === "run") {
+      const [toolId] = toolOptions.positionals;
+      if (!toolId) {
+        throw new Error("Tool run requires a TOOL_ID");
+      }
+
+      const input = {
+        limit: toolOptions.limit,
+        type: toolOptions.type,
+        source: toolOptions.source,
+        query: toolOptions.query,
+      };
+
+      printJson(await registry.runTool(toolId, input));
       return;
     }
 

@@ -16,3 +16,8 @@ Milestone 2 adds:
 - relevant-memory lookup during runtime ticks
 - local semantic retrieval through deterministic embeddings
 - CLI memory inspection through `memory recent` and `memory search`
+
+Milestone 3 begins with:
+
+- a Jasper-owned tool registry in `jasper-tools/`
+- callable example tools exposed through `jasper-agent/src/cli.js`

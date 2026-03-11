@@ -50,7 +50,11 @@ jobs:
           node ./jasper-agent/src/cli.js memory recent --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory search runtime --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory semantic "household operations" --memory-root "$TMP_MEMORY_ROOT" --limit 5
+          node ./jasper-agent/src/cli.js tools list
+          node ./jasper-agent/src/cli.js tools run identity-summary
+          node ./jasper-agent/src/cli.js tools run semantic-memory-search --memory-root "$TMP_MEMORY_ROOT" --query "household operations"
           node ./jasper-overlay/bin/jasper.js memory recent --memory-root "$TMP_MEMORY_ROOT" --limit 3
+          node ./jasper-overlay/bin/jasper.js tools list
 
       - name: Prettier (run `pnpm run format:fix` to fix)
         run: pnpm run format
