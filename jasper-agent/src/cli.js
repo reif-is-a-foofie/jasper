@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
+import { getJasperSetupStatus } from "../../jasper-core/src/setup.js";
+import { setupJasper } from "../../jasper-core/src/setup.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
 import { createReflectionStore } from "../../jasper-memory/src/reflections.js";
 import { generateToolFromTemplate } from "../../jasper-tools/src/generator.js";
@@ -11,6 +13,8 @@ import { createJasperRuntime } from "./runtime.js";
 function printUsage() {
   process.stdout.write(`Usage:
   node jasper-agent/src/cli.js start [--identity PATH] [--interval-ms N] [--max-ticks N] [--memory-root PATH] [--watch-path PATH]
+  node jasper-agent/src/cli.js setup [--jasper-home PATH] [--skip-qdrant] [--qdrant-url URL] [--qdrant-container-name NAME] [--qdrant-image IMAGE]
+  node jasper-agent/src/cli.js setup status [--jasper-home PATH]
   node jasper-agent/src/cli.js identity [--identity PATH]
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
@@ -34,6 +38,11 @@ function parseArgs(argv) {
     const arg = args[index];
     if (arg === "--identity") {
       options.identityPath = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--jasper-home") {
+      options.jasperHome = args[index + 1];
       index += 1;
       continue;
     }
@@ -123,6 +132,25 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === "--qdrant-url") {
+      options.qdrantUrl = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--qdrant-container-name") {
+      options.qdrantContainerName = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--qdrant-image") {
+      options.qdrantImage = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--skip-qdrant") {
+      options.skipQdrant = true;
+      continue;
+    }
     options.positionals.push(arg);
   }
 
@@ -145,6 +173,29 @@ async function main() {
 
   if (command === "identity") {
     printJson(loadIdentityConfig({ identityPath: options.identityPath }));
+    return;
+  }
+
+  if (command === "setup") {
+    const [setupCommand, ...setupArgs] = rest;
+    const setupOptions = parseArgs(setupArgs);
+
+    if (setupCommand === "status") {
+      printJson(
+        await getJasperSetupStatus({ jasperHome: setupOptions.jasperHome }),
+      );
+      return;
+    }
+
+    printJson(
+      await setupJasper({
+        jasperHome: options.jasperHome,
+        skipQdrant: options.skipQdrant,
+        qdrantUrl: options.qdrantUrl,
+        qdrantContainerName: options.qdrantContainerName,
+        qdrantImage: options.qdrantImage,
+      }),
+    );
     return;
   }
 

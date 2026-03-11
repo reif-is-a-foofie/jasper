@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { defaultIdentityConfigPath } from "./home.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +77,8 @@ function parseSimpleYaml(sourceText) {
     const nextLine = lines[index + 1] ?? "";
     const nextTrimmed = nextLine.trim();
     const nextIndent = nextTrimmed ? countIndent(nextLine) : -1;
-    const expectsNestedBlock = remainder === "" && nextTrimmed && nextIndent > indent;
+    const expectsNestedBlock =
+      remainder === "" && nextTrimmed && nextIndent > indent;
 
     let value;
     if (!expectsNestedBlock) {
@@ -88,7 +90,9 @@ function parseSimpleYaml(sourceText) {
     }
 
     if (Array.isArray(parent.value)) {
-      throw new Error(`Cannot assign mapping key inside scalar list near: ${trimmed}`);
+      throw new Error(
+        `Cannot assign mapping key inside scalar list near: ${trimmed}`,
+      );
     }
 
     parent.value[key] = value;
@@ -107,13 +111,27 @@ function assertString(value, fieldName) {
 }
 
 function assertStringList(value, fieldName) {
-  if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== "string")) {
-    throw new Error(`Identity field "${fieldName}" must be a non-empty string array`);
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((item) => typeof item !== "string")
+  ) {
+    throw new Error(
+      `Identity field "${fieldName}" must be a non-empty string array`,
+    );
   }
 }
 
-export function defaultIdentityPath() {
+export function bundledIdentityPath() {
   return path.join(coreRoot, "config", "identity.example.yaml");
+}
+
+export function defaultIdentityPath(options = {}) {
+  const installedPath = defaultIdentityConfigPath(options);
+  if (fs.existsSync(installedPath)) {
+    return installedPath;
+  }
+  return bundledIdentityPath();
 }
 
 export function validateIdentityConfig(config) {
@@ -148,7 +166,9 @@ export function validateIdentityConfig(config) {
 }
 
 export function loadIdentityConfig(options = {}) {
-  const identityPath = path.resolve(options.identityPath || defaultIdentityPath());
+  const identityPath = path.resolve(
+    options.identityPath || defaultIdentityPath(options),
+  );
   const sourceText = fs.readFileSync(identityPath, "utf8");
   const rawConfig = parseSimpleYaml(sourceText);
   const config = validateIdentityConfig(rawConfig);

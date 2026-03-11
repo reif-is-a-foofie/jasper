@@ -1,4 +1,4 @@
-<p align="center"><code>node jasper-overlay/bin/jasper.js</code><br />or stage an installable package with <code>python3 jasper-overlay/scripts/build_package.py --version 0.1.0 --pack-output ./dist/jasper-ai-0.1.0.tgz</code></p>
+<p align="center"><code>target: npm install -g jasper-ai && jasper setup && jasper</code><br />current local package path: <code>python3 jasper-overlay/scripts/build_package.py --version 0.1.0 --pack-output ./dist/jasper-ai-0.1.0.tgz</code></p>
 <p align="center"><strong>Jasper</strong> is a personal intelligence system built as a maintained Codex fork.</p>
 <p align="center">
   Jasper adds identity, persistent memory, environment listeners, reflections, and tool generation on top of the upstream runtime while keeping the fork update-safe.
@@ -12,7 +12,31 @@
 
 ```shell
 pnpm install
+node jasper-overlay/bin/jasper.js setup --skip-qdrant
 node jasper-overlay/bin/jasper.js
+```
+
+### Installing Jasper globally
+
+Target published install path:
+
+```shell
+npm install -g jasper-ai
+jasper setup
+jasper
+```
+
+Current local tarball path:
+
+```shell
+python3 codex-cli/scripts/install_native_deps.py
+python3 jasper-overlay/scripts/build_package.py \
+  --version 0.1.0 \
+  --pack-output ./dist/jasper-ai-0.1.0.tgz
+
+npm install -g ./dist/jasper-ai-0.1.0.tgz
+jasper setup
+jasper
 ```
 
 ### Staging an installable Jasper package
@@ -24,6 +48,7 @@ python3 jasper-overlay/scripts/build_package.py \
   --pack-output ./dist/jasper-ai-0.1.0.tgz
 
 npm install -g ./dist/jasper-ai-0.1.0.tgz
+jasper setup
 jasper
 ```
 
@@ -31,13 +56,15 @@ jasper
 
 - The packaged `jasper` launcher uses the bundled native Codex binary plus Jasper-owned JS modules.
 - If `codex-cli/vendor` is already hydrated, the Jasper packager will pick it up automatically.
-- End-user OpenAI authentication and guided setup are intentionally deferred for now. Packaged users will still need manual credential and connector setup until onboarding is implemented.
+- `jasper setup` provisions Jasper's local home directory and attempts to provision Qdrant automatically through Docker by default.
+- End-user OpenAI authentication and guided connector setup are intentionally deferred for now. Packaged users will still need manual credential and connector setup until onboarding is implemented.
 - Some deeper docs and source directories still use Codex naming because the fork inherits upstream internals.
 - The maintained Jasper product contract lives in [docs/jasper/PROJECT_DETAILS.md](./docs/jasper/PROJECT_DETAILS.md).
 
 ## Docs
 
 - [**Jasper PRD**](./docs/jasper/PROJECT_DETAILS.md)
+- [**Jasper Onboarding**](./docs/jasper/AUTOMATIC_ONBOARDING.md)
 - [**Jasper Fork Strategy**](./docs/jasper/FORK_STRATEGY.md)
 - [**Jasper Overlay**](./jasper-overlay/README.md)
 - [**Upstream Codex Documentation**](https://developers.openai.com/codex)

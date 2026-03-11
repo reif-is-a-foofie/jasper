@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureJasperHomeLayout } from "../../jasper-core/src/home.js";
 import { cosineSimilarity } from "./embeddings.js";
 import { createEventEmbedding } from "./embeddings.js";
 import { embedText } from "./embeddings.js";
@@ -30,13 +31,15 @@ function normalizeTags(tags) {
     return [];
   }
 
-  return tags
-    .map((tag) => String(tag || "").trim())
-    .filter(Boolean);
+  return tags.map((tag) => String(tag || "").trim()).filter(Boolean);
 }
 
 function tokenize(value) {
-  return String(value || "").toLowerCase().match(/[a-z0-9]+/g) || [];
+  return (
+    String(value || "")
+      .toLowerCase()
+      .match(/[a-z0-9]+/g) || []
+  );
 }
 
 function stableEventText(event) {
@@ -106,7 +109,7 @@ function parseEmbeddingLine(line) {
 }
 
 export function defaultMemoryRoot() {
-  return memoryRoot;
+  return ensureJasperHomeLayout().memoryDir || memoryRoot;
 }
 
 export function ensureMemoryLayout(options = {}) {
@@ -146,7 +149,9 @@ export function createMemoryEvent(input = {}) {
   }
 
   const payload =
-    input.payload && typeof input.payload === "object" && !Array.isArray(input.payload)
+    input.payload &&
+    typeof input.payload === "object" &&
+    !Array.isArray(input.payload)
       ? input.payload
       : { value: input.payload ?? null };
 
@@ -171,7 +176,10 @@ export class JasperEventStore {
     this.defaultSource = String(options.source || "jasper").trim() || "jasper";
     this.eventLogPath = defaultEventLogPath({ root: this.root });
     this.embeddingLogPath = defaultEmbeddingLogPath({ root: this.root });
-    this.embeddingDimension = Math.max(8, Number(options.embeddingDimension ?? 64));
+    this.embeddingDimension = Math.max(
+      8,
+      Number(options.embeddingDimension ?? 64),
+    );
   }
 
   appendEvent(input = {}) {
@@ -183,7 +191,11 @@ export class JasperEventStore {
     const embedding = createEventEmbedding(event, {
       dimension: this.embeddingDimension,
     });
-    fs.appendFileSync(this.embeddingLogPath, `${JSON.stringify(embedding)}\n`, "utf8");
+    fs.appendFileSync(
+      this.embeddingLogPath,
+      `${JSON.stringify(embedding)}\n`,
+      "utf8",
+    );
     return event;
   }
 
@@ -203,7 +215,9 @@ export class JasperEventStore {
     const expectedType = options.type ? String(options.type).trim() : "";
     const expectedSource = options.source ? String(options.source).trim() : "";
     const requiredTags = normalizeTags(options.tags);
-    const excludeSessionId = options.excludeSessionId ? String(options.excludeSessionId) : "";
+    const excludeSessionId = options.excludeSessionId
+      ? String(options.excludeSessionId)
+      : "";
 
     return this.readEvents().filter((event) => {
       if (expectedType && event.type !== expectedType) {
@@ -259,7 +273,9 @@ export class JasperEventStore {
         if (right.relevanceScore !== left.relevanceScore) {
           return right.relevanceScore - left.relevanceScore;
         }
-        return String(right.event.ts || "").localeCompare(String(left.event.ts || ""));
+        return String(right.event.ts || "").localeCompare(
+          String(left.event.ts || ""),
+        );
       })
       .slice(0, limit)
       .map((item) => ({
@@ -278,7 +294,9 @@ export class JasperEventStore {
     const queryVector = embedText(query, {
       dimension: this.embeddingDimension,
     });
-    const eventMap = new Map(this.queryEvents(options).map((event) => [event.id, event]));
+    const eventMap = new Map(
+      this.queryEvents(options).map((event) => [event.id, event]),
+    );
 
     return this.readEmbeddings()
       .filter((embedding) => eventMap.has(embedding.eventId))
@@ -294,7 +312,9 @@ export class JasperEventStore {
         if (right.vectorScore !== left.vectorScore) {
           return right.vectorScore - left.vectorScore;
         }
-        return String(right.event.ts || "").localeCompare(String(left.event.ts || ""));
+        return String(right.event.ts || "").localeCompare(
+          String(left.event.ts || ""),
+        );
       })
       .slice(0, limit)
       .map((item) => ({

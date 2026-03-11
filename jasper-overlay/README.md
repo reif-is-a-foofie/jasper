@@ -13,6 +13,7 @@ Use this directory first for:
 Current launcher behavior:
 
 - `node jasper-overlay/bin/jasper.js` launches Codex with Jasper branding enabled
+- `node jasper-overlay/bin/jasper.js setup` initializes Jasper home state and provisions Qdrant
 - `node jasper-overlay/bin/jasper.js identity` reads Jasper identity config
 - `node jasper-overlay/bin/jasper.js runtime` starts the standalone Jasper runtime scaffold
 - `node jasper-overlay/bin/jasper.js runtime --watch-path PATH` enables filesystem observation for a target path
@@ -32,6 +33,7 @@ Packaging:
 
 Installed package behavior:
 
+- `jasper setup` creates `~/.jasper/`, copies the default identity config, writes runtime config, and provisions Qdrant through Docker unless `--skip-qdrant` or `--qdrant-url` is used
 - `jasper` launches the bundled Codex binary when `vendor/` is present
 - `jasper identity`, `jasper memory`, `jasper dream`, and `jasper tools` work from the packaged Jasper JS modules without requiring a repo checkout
 - OpenAI authentication and connector onboarding are not packaged as a guided flow yet; operators still need to complete those steps manually for now

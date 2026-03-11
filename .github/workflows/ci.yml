@@ -37,7 +37,9 @@ jobs:
 
       - name: Validate Jasper JavaScript entrypoints
         run: |
+          node --check ./jasper-core/src/home.js
           node --check ./jasper-core/src/identity.js
+          node --check ./jasper-core/src/setup.js
           node --check ./jasper-memory/src/embeddings.js
           node --check ./jasper-memory/src/event-store.js
           node --check ./jasper-agent/src/runtime.js
@@ -49,6 +51,7 @@ jobs:
           TMP_MEMORY_ROOT="$(mktemp -d)"
           TMP_WATCH_ROOT="$(mktemp -d)"
           TMP_TOOLS_ROOT="$(mktemp -d)"
+          TMP_JASPER_HOME="$(mktemp -d)"
           TMP_PACKAGE_STAGE="$(mktemp -d)"
           TMP_VENDOR_SRC="$(mktemp -d)"
           TMP_VENDOR_PACKAGE_STAGE="$(mktemp -d)"
@@ -60,7 +63,11 @@ jobs:
           printf '#!/bin/sh\nexit 0\n' > "$TMP_VENDOR_SRC/x86_64-unknown-linux-musl/codex/codex"
           chmod +x "$TMP_VENDOR_SRC/x86_64-unknown-linux-musl/codex/codex"
           printf '[]\n' > "$TMP_TOOLS_ROOT/generated/registry.json"
+          node ./jasper-agent/src/cli.js setup --skip-qdrant --jasper-home "$TMP_JASPER_HOME"
+          node ./jasper-agent/src/cli.js setup status --jasper-home "$TMP_JASPER_HOME"
           node ./jasper-agent/src/cli.js start --max-ticks 2 --interval-ms 10 --memory-root "$TMP_MEMORY_ROOT"
+          JASPER_HOME="$TMP_JASPER_HOME" node ./jasper-agent/src/cli.js start --max-ticks 1 --interval-ms 10
+          JASPER_HOME="$TMP_JASPER_HOME" node ./jasper-agent/src/cli.js memory recent --limit 5
           node ./jasper-agent/src/cli.js memory recent --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory search runtime --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory semantic "household operations" --memory-root "$TMP_MEMORY_ROOT" --limit 5
@@ -81,6 +88,7 @@ jobs:
           node ./jasper-overlay/bin/jasper.js tools list
           python3 ./jasper-overlay/scripts/build_package.py --version 0.1.0 --staging-dir "$TMP_PACKAGE_STAGE" --pack-output "$TMP_PACKAGE_TGZ"
           python3 ./jasper-overlay/scripts/build_package.py --version 0.1.0 --staging-dir "$TMP_VENDOR_PACKAGE_STAGE" --vendor-src "$TMP_VENDOR_SRC"
+          node "$TMP_PACKAGE_STAGE/bin/jasper.js" setup --skip-qdrant --jasper-home "$TMP_JASPER_HOME/package-home"
           node "$TMP_PACKAGE_STAGE/bin/jasper.js" identity
           node "$TMP_PACKAGE_STAGE/bin/jasper.js" tools list
           test -f "$TMP_PACKAGE_TGZ"

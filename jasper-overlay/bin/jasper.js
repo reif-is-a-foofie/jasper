@@ -205,6 +205,12 @@ if (subcommand === "runtime") {
     [agentCliPath, "dream", ...args.slice(1)],
     process.env,
   );
+} else if (subcommand === "setup") {
+  child = spawnProcess(
+    process.execPath,
+    [agentCliPath, "setup", ...args.slice(1)],
+    process.env,
+  );
 } else {
   if (args.length === 0) {
     printBanner();
