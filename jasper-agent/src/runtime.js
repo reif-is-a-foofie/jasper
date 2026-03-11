@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
+import { createEnvironmentListeners } from "./listeners/index.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -27,6 +28,15 @@ export class JasperRuntime {
       source: "jasper-runtime",
     });
     this.memoryContext = [];
+    this.watchPaths = Array.isArray(options.watchPaths) ? options.watchPaths : [];
+    this.listeners = createEnvironmentListeners({
+      cwd: options.cwd || process.cwd(),
+      watchPaths: this.watchPaths,
+      maxDepth: options.listenerMaxDepth,
+      maxFiles: options.listenerMaxFiles,
+      maxChanges: options.listenerMaxChanges,
+      maxRecentFiles: options.listenerMaxRecentFiles,
+    });
     this.running = false;
     this.sessionId = options.sessionId || `runtime_${randomUUID()}`;
     this.tickCount = 0;
@@ -55,6 +65,31 @@ export class JasperRuntime {
       tags: options.tags || ["runtime"],
       payload,
     });
+  }
+
+  recordObservation(observation) {
+    return this.record(observation.type, observation.payload || {}, {
+      source: observation.source,
+      tags: observation.tags,
+    });
+  }
+
+  captureInitialEnvironment() {
+    for (const listener of this.listeners) {
+      const observations = listener.captureInitialObservations();
+      for (const observation of observations) {
+        this.recordObservation(observation);
+      }
+    }
+  }
+
+  pollEnvironment() {
+    for (const listener of this.listeners) {
+      const observations = listener.pollObservations();
+      for (const observation of observations) {
+        this.recordObservation(observation);
+      }
+    }
   }
 
   initialize(options = {}) {
@@ -152,9 +187,11 @@ export class JasperRuntime {
         tags: ["runtime", "startup"],
       },
     );
+    this.captureInitialEnvironment();
 
     while (this.running) {
       this.tickCount += 1;
+      this.pollEnvironment();
       const relevantMemory = this.loadRelevantMemory();
       this.record(
         "runtime.tick",
@@ -167,6 +204,7 @@ export class JasperRuntime {
           relevantMemoryScores: relevantMemory.map((event) =>
             event.vectorScore ?? event.relevanceScore ?? 0,
           ),
+          activeListeners: this.listeners.map((listener) => listener.id),
         },
         {
           tags: ["runtime", "heartbeat"],

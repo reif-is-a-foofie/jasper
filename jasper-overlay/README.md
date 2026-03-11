@@ -15,6 +15,7 @@ Current launcher behavior:
 - `node jasper-overlay/bin/jasper.js` launches Codex with Jasper branding enabled
 - `node jasper-overlay/bin/jasper.js identity` reads Jasper identity config
 - `node jasper-overlay/bin/jasper.js runtime` starts the standalone Jasper runtime scaffold
+- `node jasper-overlay/bin/jasper.js runtime --watch-path PATH` enables filesystem observation for a target path
 - `node jasper-overlay/bin/jasper.js memory recent` inspects Jasper raw event memory
 - `node jasper-overlay/bin/jasper.js memory semantic "query"` runs semantic memory lookup
 - `node jasper-overlay/bin/jasper.js tools list` lists registered Jasper tools

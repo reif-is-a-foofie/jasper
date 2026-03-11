@@ -7,7 +7,7 @@ import { createJasperRuntime } from "./runtime.js";
 
 function printUsage() {
   process.stdout.write(`Usage:
-  node jasper-agent/src/cli.js start [--identity PATH] [--interval-ms N] [--max-ticks N] [--memory-root PATH]
+  node jasper-agent/src/cli.js start [--identity PATH] [--interval-ms N] [--max-ticks N] [--memory-root PATH] [--watch-path PATH]
   node jasper-agent/src/cli.js identity [--identity PATH]
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
@@ -67,6 +67,32 @@ function parseArgs(argv) {
     }
     if (arg === "--query") {
       options.query = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--watch-path") {
+      options.watchPaths = options.watchPaths || [];
+      options.watchPaths.push(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--listener-max-depth") {
+      options.listenerMaxDepth = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--listener-max-files") {
+      options.listenerMaxFiles = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--listener-max-changes") {
+      options.listenerMaxChanges = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--listener-max-recent-files") {
+      options.listenerMaxRecentFiles = Number(args[index + 1]);
       index += 1;
       continue;
     }

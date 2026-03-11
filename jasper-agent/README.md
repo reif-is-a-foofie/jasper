@@ -21,3 +21,9 @@ Milestone 3 begins with:
 
 - a Jasper-owned tool registry in `jasper-tools/`
 - callable example tools exposed through `jasper-agent/src/cli.js`
+
+Milestone 4 now includes:
+
+- environment listeners under `jasper-agent/src/listeners/`
+- a session snapshot listener
+- a polling filesystem listener that writes observations into memory

@@ -46,10 +46,14 @@ jobs:
       - name: Smoke test Jasper memory runtime
         run: |
           TMP_MEMORY_ROOT="$(mktemp -d)"
+          TMP_WATCH_ROOT="$(mktemp -d)"
           node ./jasper-agent/src/cli.js start --max-ticks 2 --interval-ms 10 --memory-root "$TMP_MEMORY_ROOT"
           node ./jasper-agent/src/cli.js memory recent --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory search runtime --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory semantic "household operations" --memory-root "$TMP_MEMORY_ROOT" --limit 5
+          (sleep 0.12; printf 'hello\n' > "$TMP_WATCH_ROOT"/note.txt) &
+          node ./jasper-agent/src/cli.js start --max-ticks 4 --interval-ms 80 --memory-root "$TMP_MEMORY_ROOT" --watch-path "$TMP_WATCH_ROOT" >/dev/null
+          node ./jasper-agent/src/cli.js memory search listener.filesystem.changed --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js tools list
           node ./jasper-agent/src/cli.js tools run identity-summary
           node ./jasper-agent/src/cli.js tools run semantic-memory-search --memory-root "$TMP_MEMORY_ROOT" --query "household operations"
