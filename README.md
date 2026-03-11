@@ -21,7 +21,6 @@ node jasper-overlay/bin/jasper.js
 python3 codex-cli/scripts/install_native_deps.py
 python3 jasper-overlay/scripts/build_package.py \
   --version 0.1.0 \
-  --vendor-src codex-cli/vendor \
   --pack-output ./dist/jasper-codex-0.1.0.tgz
 
 npm install -g ./dist/jasper-codex-0.1.0.tgz
@@ -31,6 +30,7 @@ jasper
 ### Notes
 
 - The packaged `jasper` launcher uses the bundled native Codex binary plus Jasper-owned JS modules.
+- If `codex-cli/vendor` is already hydrated, the Jasper packager will pick it up automatically.
 - Some deeper docs and source directories still use Codex naming because the fork inherits upstream internals.
 - The maintained Jasper product contract lives in [docs/jasper/PROJECT_DETAILS.md](./docs/jasper/PROJECT_DETAILS.md).
 

@@ -20,6 +20,7 @@ PACKAGE_SOURCE_DIRS = (
     "jasper-memory",
     "jasper-tools",
 )
+DEFAULT_VENDOR_SRC = REPO_ROOT / "codex-cli" / "vendor"
 
 
 def parse_args() -> argparse.Namespace:
@@ -73,6 +74,19 @@ def copy_tree(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst)
 
 
+def resolve_vendor_src(vendor_src: Path | None) -> Path | None:
+    if vendor_src is not None:
+        vendor_src = vendor_src.resolve()
+        if not vendor_src.exists():
+            raise RuntimeError(f"Vendor source directory not found: {vendor_src}")
+        return vendor_src
+
+    if DEFAULT_VENDOR_SRC.exists() and any(DEFAULT_VENDOR_SRC.iterdir()):
+        return DEFAULT_VENDOR_SRC
+
+    return None
+
+
 def stage_package(staging_dir: Path, version: str, vendor_src: Path | None) -> None:
     bin_dir = staging_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
@@ -90,9 +104,6 @@ def stage_package(staging_dir: Path, version: str, vendor_src: Path | None) -> N
         shutil.copy2(license_src, staging_dir / "LICENSE")
 
     if vendor_src is not None:
-        vendor_src = vendor_src.resolve()
-        if not vendor_src.exists():
-            raise RuntimeError(f"Vendor source directory not found: {vendor_src}")
         copy_tree(vendor_src, staging_dir / "vendor")
 
     with open(PACKAGE_TEMPLATE_PATH, "r", encoding="utf-8") as handle:
@@ -130,12 +141,15 @@ def run_npm_pack(staging_dir: Path, output_path: Path) -> Path:
 def main() -> int:
     args = parse_args()
     staging_dir, created_temp = prepare_staging_dir(args.staging_dir)
+    vendor_src = resolve_vendor_src(args.vendor_src)
 
     try:
-        stage_package(staging_dir, args.version, args.vendor_src)
+        stage_package(staging_dir, args.version, vendor_src)
         print(f"Staged Jasper package in {staging_dir}")
 
-        if args.vendor_src is None:
+        if vendor_src is not None:
+            print(f"Bundled vendor payload from {vendor_src}")
+        else:
             print(
                 "No vendor payload was bundled. Identity, memory, tool, and dream commands "
                 "will work, but the default Jasper TUI launch requires vendor/ or "

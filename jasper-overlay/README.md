@@ -25,7 +25,8 @@ Current launcher behavior:
 Packaging:
 
 - `python3 jasper-overlay/scripts/build_package.py --version 0.1.0 --staging-dir /tmp/jasper-package` stages a publishable `jasper-codex` package
-- add `--vendor-src codex-cli/vendor` to bundle native Codex binaries and make the package runnable outside the repo
+- if `codex-cli/vendor` is already hydrated, the packager will bundle it automatically
+- add `--vendor-src codex-cli/vendor` to point at a specific vendor tree explicitly
 - add `--pack-output /tmp/jasper-codex-0.1.0.tgz` to emit an installable tarball
 - the resulting package can be installed with `npm install -g /tmp/jasper-codex-0.1.0.tgz`
 
