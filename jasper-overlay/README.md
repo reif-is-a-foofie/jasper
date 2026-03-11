@@ -15,5 +15,6 @@ Current launcher behavior:
 - `node jasper-overlay/bin/jasper.js` launches Codex with Jasper branding enabled
 - `node jasper-overlay/bin/jasper.js identity` reads Jasper identity config
 - `node jasper-overlay/bin/jasper.js runtime` starts the standalone Jasper runtime scaffold
+- `node jasper-overlay/bin/jasper.js memory recent` inspects Jasper raw event memory
 
 Do not move Jasper behavior into `codex-rs/` or `codex-cli/` unless the core patch gate in `docs/jasper/FORK_STRATEGY.md` is satisfied.

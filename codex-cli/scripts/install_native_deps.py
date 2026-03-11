@@ -454,8 +454,11 @@ def extract_archive(
 
 
 def _load_manifest(manifest_path: Path) -> dict:
-    cmd = ["dotslash", "--", "parse", str(manifest_path)]
-    stdout = subprocess.check_output(cmd, text=True)
+    stdout = _load_manifest_via_json(manifest_path)
+    if stdout is None:
+        cmd = ["dotslash", "--", "parse", str(manifest_path)]
+        stdout = subprocess.check_output(cmd, text=True)
+
     try:
         manifest = json.loads(stdout)
     except json.JSONDecodeError as exc:
@@ -467,6 +470,23 @@ def _load_manifest(manifest_path: Path) -> dict:
         )
 
     return manifest
+
+
+def _load_manifest_via_json(manifest_path: Path) -> str | None:
+    raw_text = manifest_path.read_text()
+    if raw_text.startswith("#!"):
+        _, _, raw_text = raw_text.partition("\n")
+
+    candidate = raw_text.strip()
+    if not candidate:
+        raise RuntimeError(f"DotSlash manifest is empty: {manifest_path}")
+
+    try:
+        parsed = json.loads(candidate)
+    except json.JSONDecodeError:
+        return None
+
+    return json.dumps(parsed)
 
 
 if __name__ == "__main__":

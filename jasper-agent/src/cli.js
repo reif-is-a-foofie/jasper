@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 
 import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
+import { createEventStore } from "../../jasper-memory/src/event-store.js";
 import { createJasperRuntime } from "./runtime.js";
 
 function printUsage() {
   process.stdout.write(`Usage:
-  node jasper-agent/src/cli.js start [--identity PATH] [--interval-ms N] [--max-ticks N]
+  node jasper-agent/src/cli.js start [--identity PATH] [--interval-ms N] [--max-ticks N] [--memory-root PATH]
   node jasper-agent/src/cli.js identity [--identity PATH]
+  node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
+  node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
 `);
 }
 
 function parseArgs(argv) {
   const args = [...argv];
-  const options = {};
+  const options = {
+    positionals: [],
+  };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -29,10 +34,41 @@ function parseArgs(argv) {
     if (arg === "--max-ticks") {
       options.maxTicks = Number(args[index + 1]);
       index += 1;
+      continue;
     }
+    if (arg === "--memory-root") {
+      options.memoryRoot = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--memory-context-limit") {
+      options.memoryContextLimit = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--limit") {
+      options.limit = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--type") {
+      options.type = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--source") {
+      options.source = args[index + 1];
+      index += 1;
+      continue;
+    }
+    options.positionals.push(arg);
   }
 
   return options;
+}
+
+function printJson(value) {
+  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
 async function main() {
@@ -46,9 +82,44 @@ async function main() {
   const runtime = createJasperRuntime(options);
 
   if (command === "identity") {
-    process.stdout.write(
-      `${JSON.stringify(loadIdentityConfig({ identityPath: options.identityPath }), null, 2)}\n`,
-    );
+    printJson(loadIdentityConfig({ identityPath: options.identityPath }));
+    return;
+  }
+
+  if (command === "memory") {
+    const [memoryCommand, ...memoryArgs] = rest;
+    const memoryOptions = parseArgs(memoryArgs);
+    const store = createEventStore({ root: memoryOptions.memoryRoot });
+
+    if (memoryCommand === "recent") {
+      printJson(
+        store.listRecentEvents({
+          limit: memoryOptions.limit,
+          type: memoryOptions.type,
+          source: memoryOptions.source,
+        }),
+      );
+      return;
+    }
+
+    if (memoryCommand === "search") {
+      const query = memoryOptions.positionals.join(" ").trim();
+      if (!query) {
+        throw new Error("Memory search requires a query string");
+      }
+
+      printJson(
+        store.searchRelevantEvents({
+          query,
+          limit: memoryOptions.limit,
+          type: memoryOptions.type,
+          source: memoryOptions.source,
+        }),
+      );
+      return;
+    }
+
+    printUsage();
     return;
   }
 

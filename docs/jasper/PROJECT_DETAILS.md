@@ -235,6 +235,23 @@ The fork must:
 - add Jasper-specific interfaces
 - include integrated memory awareness
 
+## Distribution And Open Source Model
+
+Jasper must be packaged so other people can run it on their own machines, inspect how it works, and extend it.
+
+Distribution requirements:
+
+- ship as an installable local product, not just a repo for Reif's personal use
+- support open-source contribution and self-hosted experimentation
+- preserve a modular extension surface so users can add tools, memory layers, and environment connectors
+- keep Jasper-owned functionality separable from upstream Codex so distribution does not depend on a brittle fork
+
+Packaging goals:
+
+- provide a reproducible local install path for macOS, Linux, and Windows-compatible environments
+- keep launcher, identity, memory, and tool systems packageable as Jasper-owned modules
+- support future release artifacts that let operators install Jasper without rebuilding the full stack manually
+
 ## Fork Strategy
 
 Repository structure target:

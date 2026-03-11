@@ -1,10 +1,21 @@
 # Jasper Memory
 
-`jasper-memory/` is reserved for Jasper's multi-layer memory system.
+`jasper-memory/` owns Jasper's multi-layer memory system.
 
-Planned layers:
+Milestone 2 provides the raw event layer and retrieval foundation.
 
-- raw events
-- embeddings
-- clusters
-- reflections
+Current structure:
+
+- `src/event-store.js`: append and retrieval APIs for raw event memory
+- `data/events/events.jsonl`: append-only raw event log, created on first write
+- `data/embeddings/`: reserved for vector outputs
+- `data/clusters/`: reserved for topic grouping
+- `data/reflections/`: reserved for nightly reflection outputs
+
+Current capabilities:
+
+- append structured events with source, tags, payload, and session identity
+- retrieve recent events
+- search relevant events with lightweight keyword scoring
+
+This directory remains Jasper-owned and should absorb future embedding, clustering, and reflection work before any upstream Codex integration is considered.

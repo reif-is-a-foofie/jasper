@@ -8,3 +8,10 @@ Milestone 1 provides:
 - identity-first initialization
 - heartbeat loop
 - clean shutdown handling
+
+Milestone 2 adds:
+
+- raw event persistence through `jasper-memory/`
+- recent-context retrieval on startup
+- relevant-memory lookup during runtime ticks
+- CLI memory inspection through `memory recent` and `memory search`
