@@ -23,10 +23,12 @@ export function createSemanticMemorySearchTool(context) {
     },
     async run(input = {}) {
       if (!String(input.query || "").trim()) {
-        throw new Error('Tool "semantic-memory-search" requires a non-empty query');
+        throw new Error(
+          'Tool "semantic-memory-search" requires a non-empty query',
+        );
       }
 
-      return context.memory.searchSemanticEvents({
+      return await context.memory.searchSemanticEvents({
         query: input.query,
         limit: normalizeLimit(input.limit, 5),
         type: input.type,

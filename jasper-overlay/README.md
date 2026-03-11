@@ -19,6 +19,7 @@ Current launcher behavior:
 - `node jasper-overlay/bin/jasper.js runtime --watch-path PATH` enables filesystem observation for a target path
 - `node jasper-overlay/bin/jasper.js memory recent` inspects Jasper raw event memory
 - `node jasper-overlay/bin/jasper.js memory semantic "query"` runs semantic memory lookup
+- `node jasper-overlay/bin/jasper.js memory materialize` pushes raw-memory embeddings into the local semantic index
 - `node jasper-overlay/bin/jasper.js dream reflect` generates a Jasper reflection record
 - `node jasper-overlay/bin/jasper.js tools list` lists registered Jasper tools
 - `node jasper-overlay/bin/jasper.js tools generate ...` writes a generated Jasper tool
@@ -34,6 +35,7 @@ Packaging:
 Installed package behavior:
 
 - `jasper setup` creates `~/.jasper/`, copies the default identity config, writes runtime config, and provisions Qdrant through Docker unless `--skip-qdrant` or `--qdrant-url` is used
+- raw events still land in `~/.jasper/data/memory` first; `jasper memory materialize` is the second-stage semantic pipe
 - `jasper` launches the bundled Codex binary when `vendor/` is present
 - `jasper identity`, `jasper memory`, `jasper dream`, and `jasper tools` work from the packaged Jasper JS modules without requiring a repo checkout
 - OpenAI authentication and connector onboarding are not packaged as a guided flow yet; operators still need to complete those steps manually for now

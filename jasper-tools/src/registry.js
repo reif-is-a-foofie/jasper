@@ -9,7 +9,10 @@ import { createSemanticMemorySearchTool } from "./tools/semantic-memory-search.j
 export function createToolContext(options = {}) {
   return {
     identity: loadIdentityConfig({ identityPath: options.identityPath }),
-    memory: createEventStore({ root: options.memoryRoot }),
+    memory: createEventStore({
+      root: options.memoryRoot,
+      jasperHome: options.jasperHome,
+    }),
   };
 }
 

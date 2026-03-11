@@ -14,8 +14,9 @@ Milestone 2 adds:
 - raw event persistence through `jasper-memory/`
 - recent-context retrieval on startup
 - relevant-memory lookup during runtime ticks
-- local semantic retrieval through deterministic embeddings
-- CLI memory inspection through `memory recent` and `memory search`
+- local-first semantic retrieval with deterministic embeddings
+- optional semantic materialization into a local Qdrant collection
+- CLI memory inspection through `memory recent`, `memory search`, and `memory materialize`
 
 Milestone 3 begins with:
 

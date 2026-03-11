@@ -42,9 +42,13 @@ jobs:
           node --check ./jasper-core/src/setup.js
           node --check ./jasper-memory/src/embeddings.js
           node --check ./jasper-memory/src/event-store.js
+          node --check ./jasper-memory/src/qdrant.js
           node --check ./jasper-agent/src/runtime.js
           node --check ./jasper-agent/src/cli.js
           node --check ./jasper-overlay/bin/jasper.js
+
+      - name: Test Jasper semantic materialization adapter
+        run: node --test ./jasper-memory/src/qdrant.test.js
 
       - name: Smoke test Jasper memory runtime
         run: |
@@ -68,6 +72,7 @@ jobs:
           node ./jasper-agent/src/cli.js start --max-ticks 2 --interval-ms 10 --memory-root "$TMP_MEMORY_ROOT"
           JASPER_HOME="$TMP_JASPER_HOME" node ./jasper-agent/src/cli.js start --max-ticks 1 --interval-ms 10
           JASPER_HOME="$TMP_JASPER_HOME" node ./jasper-agent/src/cli.js memory recent --limit 5
+          JASPER_HOME="$TMP_JASPER_HOME" node ./jasper-agent/src/cli.js memory materialize
           node ./jasper-agent/src/cli.js memory recent --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory search runtime --memory-root "$TMP_MEMORY_ROOT" --limit 5
           node ./jasper-agent/src/cli.js memory semantic "household operations" --memory-root "$TMP_MEMORY_ROOT" --limit 5

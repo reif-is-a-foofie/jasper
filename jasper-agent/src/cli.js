@@ -19,6 +19,7 @@ function printUsage() {
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory semantic QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
+  node jasper-agent/src/cli.js memory materialize [--memory-root PATH] [--jasper-home PATH]
   node jasper-agent/src/cli.js dream reflect [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js dream recent [--memory-root PATH] [--limit N]
   node jasper-agent/src/cli.js tools list [--identity PATH] [--memory-root PATH]
@@ -202,7 +203,10 @@ async function main() {
   if (command === "memory") {
     const [memoryCommand, ...memoryArgs] = rest;
     const memoryOptions = parseArgs(memoryArgs);
-    const store = createEventStore({ root: memoryOptions.memoryRoot });
+    const store = createEventStore({
+      root: memoryOptions.memoryRoot,
+      jasperHome: memoryOptions.jasperHome,
+    });
 
     if (memoryCommand === "recent") {
       printJson(
@@ -239,13 +243,18 @@ async function main() {
       }
 
       printJson(
-        store.searchSemanticEvents({
+        await store.searchSemanticEvents({
           query,
           limit: memoryOptions.limit,
           type: memoryOptions.type,
           source: memoryOptions.source,
         }),
       );
+      return;
+    }
+
+    if (memoryCommand === "materialize") {
+      printJson(await store.materializeSemanticIndex());
       return;
     }
 
@@ -259,6 +268,7 @@ async function main() {
     const registry = createToolRegistry({
       identityPath: toolOptions.identityPath,
       memoryRoot: toolOptions.memoryRoot,
+      jasperHome: toolOptions.jasperHome,
       toolsRoot: toolOptions.toolsRoot,
     });
 

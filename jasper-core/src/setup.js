@@ -5,12 +5,16 @@ import { bundledIdentityPath } from "./identity.js";
 import { defaultIdentityConfigPath } from "./home.js";
 import { defaultRuntimeConfigPath } from "./home.js";
 import { ensureJasperHomeLayout } from "./home.js";
+import { createQdrantMemoryIndex } from "../../jasper-memory/src/qdrant.js";
+import { DEFAULT_QDRANT_COLLECTION_NAME } from "../../jasper-memory/src/qdrant.js";
+import { DEFAULT_QDRANT_DISTANCE } from "../../jasper-memory/src/qdrant.js";
 
 const DEFAULT_QDRANT_URL = "http://127.0.0.1:6333";
 const DEFAULT_QDRANT_IMAGE = "qdrant/qdrant:latest";
 const DEFAULT_QDRANT_CONTAINER = "jasper-qdrant";
 const DEFAULT_QDRANT_PORT = 6333;
 const DEFAULT_QDRANT_GRPC_PORT = 6334;
+const DEFAULT_EMBEDDING_DIMENSION = 64;
 
 function runCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -207,6 +211,21 @@ export async function setupJasper(options = {}) {
   copyFileIfMissing(bundledIdentityPath(), identityPath);
 
   const qdrant = await resolveQdrantConfig(layout, options);
+  const qdrantCollection =
+    qdrant.enabled && qdrant.url
+      ? await createQdrantMemoryIndex({
+          url: qdrant.url,
+          collectionName: DEFAULT_QDRANT_COLLECTION_NAME,
+          embeddingDimension: DEFAULT_EMBEDDING_DIMENSION,
+          distance: DEFAULT_QDRANT_DISTANCE,
+          syncStatePath: path.join(
+            layout.memoryDir,
+            "data",
+            "embeddings",
+            "qdrant-sync.json",
+          ),
+        }).ensureCollection()
+      : null;
   const runtimeConfigPath = defaultRuntimeConfigPath({
     jasperHome: layout.root,
   });
@@ -218,7 +237,12 @@ export async function setupJasper(options = {}) {
     identityPath,
     memoryRoot: layout.memoryDir,
     services: {
-      qdrant,
+      qdrant: qdrantCollection
+        ? {
+            ...qdrant,
+            collection: qdrantCollection,
+          }
+        : qdrant,
     },
     onboarding: {
       openaiAuth: {
@@ -267,6 +291,7 @@ export async function getJasperSetupStatus(options = {}) {
         status: "ready",
         mode: runtimeConfig.services.qdrant.mode,
         url: runtimeConfig.services.qdrant.url,
+        collection: runtimeConfig.services.qdrant.collection || null,
         health,
       };
     } catch (error) {
@@ -275,6 +300,7 @@ export async function getJasperSetupStatus(options = {}) {
         status: "unreachable",
         mode: runtimeConfig.services.qdrant.mode,
         url: runtimeConfig.services.qdrant.url,
+        collection: runtimeConfig.services.qdrant.collection || null,
         error: error instanceof Error ? error.message : String(error),
       };
     }

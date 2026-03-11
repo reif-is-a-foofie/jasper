@@ -18,17 +18,25 @@ export class JasperRuntime {
     this.identityPath = options.identityPath;
     this.tickIntervalMs = Math.max(10, Number(options.tickIntervalMs ?? 5000));
     this.maxTicks =
-      options.maxTicks === undefined ? null : Math.max(1, Number(options.maxTicks));
+      options.maxTicks === undefined
+        ? null
+        : Math.max(1, Number(options.maxTicks));
     this.memoryRoot = options.memoryRoot;
-    this.memoryContextLimit = Math.max(1, Number(options.memoryContextLimit ?? 5));
+    this.memoryContextLimit = Math.max(
+      1,
+      Number(options.memoryContextLimit ?? 5),
+    );
     this.stdout = options.stdout || process.stdout;
     this.identity = null;
     this.memory = createEventStore({
       root: this.memoryRoot,
+      jasperHome: options.jasperHome,
       source: "jasper-runtime",
     });
     this.memoryContext = [];
-    this.watchPaths = Array.isArray(options.watchPaths) ? options.watchPaths : [];
+    this.watchPaths = Array.isArray(options.watchPaths)
+      ? options.watchPaths
+      : [];
     this.listeners = createEnvironmentListeners({
       cwd: options.cwd || process.cwd(),
       watchPaths: this.watchPaths,
@@ -134,7 +142,7 @@ export class JasperRuntime {
     }
   }
 
-  loadRelevantMemory() {
+  async loadRelevantMemory() {
     const query = [
       this.identity?.config?.identity?.role,
       ...(this.identity?.config?.mission || []),
@@ -142,7 +150,7 @@ export class JasperRuntime {
       "household",
     ].join(" ");
 
-    const semantic = this.memory.searchSemanticEvents({
+    const semantic = await this.memory.searchSemanticEvents({
       query,
       limit: 3,
       excludeSessionId: this.sessionId,
@@ -192,7 +200,7 @@ export class JasperRuntime {
     while (this.running) {
       this.tickCount += 1;
       this.pollEnvironment();
-      const relevantMemory = this.loadRelevantMemory();
+      const relevantMemory = await this.loadRelevantMemory();
       this.record(
         "runtime.tick",
         {
@@ -201,8 +209,8 @@ export class JasperRuntime {
           mission: this.identity.config.mission,
           relevantMemoryIds: relevantMemory.map((event) => event.id),
           relevantMemoryTypes: relevantMemory.map((event) => event.type),
-          relevantMemoryScores: relevantMemory.map((event) =>
-            event.vectorScore ?? event.relevanceScore ?? 0,
+          relevantMemoryScores: relevantMemory.map(
+            (event) => event.vectorScore ?? event.relevanceScore ?? 0,
           ),
           activeListeners: this.listeners.map((listener) => listener.id),
         },

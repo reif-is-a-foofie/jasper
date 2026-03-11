@@ -3,9 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureJasperHomeLayout } from "../../jasper-core/src/home.js";
+import { readRuntimeConfig } from "../../jasper-core/src/setup.js";
 import { cosineSimilarity } from "./embeddings.js";
 import { createEventEmbedding } from "./embeddings.js";
 import { embedText } from "./embeddings.js";
+import { createQdrantMemoryIndex } from "./qdrant.js";
+import { DEFAULT_QDRANT_COLLECTION_NAME } from "./qdrant.js";
+import { DEFAULT_QDRANT_DISTANCE } from "./qdrant.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +112,54 @@ function parseEmbeddingLine(line) {
   }
 }
 
+function defaultQdrantSyncStatePath(options = {}) {
+  const layout = ensureMemoryLayout(options);
+  return path.join(layout.embeddingsDir, "qdrant-sync.json");
+}
+
+function resolveRuntimeMemoryConfig(options, root) {
+  const runtimeConfig =
+    options.runtimeConfig ||
+    readRuntimeConfig({ jasperHome: options.jasperHome }) ||
+    null;
+  if (
+    !runtimeConfig?.services?.qdrant?.enabled ||
+    !runtimeConfig.services.qdrant.url
+  ) {
+    return null;
+  }
+
+  const configuredMemoryRoot = runtimeConfig.memoryRoot
+    ? path.resolve(runtimeConfig.memoryRoot)
+    : null;
+  if (configuredMemoryRoot && configuredMemoryRoot !== root) {
+    return null;
+  }
+
+  const qdrant = runtimeConfig.services.qdrant;
+  const collectionName =
+    qdrant.collection?.name ||
+    qdrant.collectionName ||
+    DEFAULT_QDRANT_COLLECTION_NAME;
+  const embeddingDimension = Math.max(
+    8,
+    Number(
+      qdrant.collection?.embeddingDimension ||
+        qdrant.embeddingDimension ||
+        options.embeddingDimension ||
+        64,
+    ),
+  );
+
+  return {
+    url: qdrant.url,
+    collectionName,
+    embeddingDimension,
+    distance:
+      qdrant.collection?.distance || qdrant.distance || DEFAULT_QDRANT_DISTANCE,
+  };
+}
+
 export function defaultMemoryRoot() {
   return ensureJasperHomeLayout().memoryDir || memoryRoot;
 }
@@ -176,10 +228,25 @@ export class JasperEventStore {
     this.defaultSource = String(options.source || "jasper").trim() || "jasper";
     this.eventLogPath = defaultEventLogPath({ root: this.root });
     this.embeddingLogPath = defaultEmbeddingLogPath({ root: this.root });
+
+    const runtimeMemoryConfig = resolveRuntimeMemoryConfig(options, this.root);
     this.embeddingDimension = Math.max(
       8,
-      Number(options.embeddingDimension ?? 64),
+      Number(
+        runtimeMemoryConfig?.embeddingDimension ??
+          options.embeddingDimension ??
+          64,
+      ),
     );
+    this.qdrant =
+      runtimeMemoryConfig &&
+      createQdrantMemoryIndex({
+        url: runtimeMemoryConfig.url,
+        collectionName: runtimeMemoryConfig.collectionName,
+        embeddingDimension: this.embeddingDimension,
+        distance: runtimeMemoryConfig.distance,
+        syncStatePath: defaultQdrantSyncStatePath({ root: this.root }),
+      });
   }
 
   appendEvent(input = {}) {
@@ -284,7 +351,7 @@ export class JasperEventStore {
       }));
   }
 
-  searchSemanticEvents(options = {}) {
+  searchLocalSemanticEvents(options = {}) {
     const query = String(options.query || "").trim();
     if (!query) {
       return [];
@@ -321,6 +388,62 @@ export class JasperEventStore {
         ...item.event,
         vectorScore: item.vectorScore,
       }));
+  }
+
+  async materializeSemanticIndex() {
+    if (!this.qdrant || !this.qdrant.isConfigured()) {
+      return {
+        status: "disabled",
+        provider: "local",
+        indexedEventCount: 0,
+      };
+    }
+
+    const sync = await this.qdrant.syncPendingEmbeddings(this);
+    return {
+      status: sync.status,
+      provider: "qdrant",
+      collectionName: this.qdrant.collectionName,
+      indexedEventCount: sync.syncedEmbeddingCount,
+    };
+  }
+
+  async searchSemanticEvents(options = {}) {
+    const query = String(options.query || "").trim();
+    if (!query) {
+      return [];
+    }
+
+    const limit = normalizeLimit(options.limit, 10);
+    const queryVector = embedText(query, {
+      dimension: this.embeddingDimension,
+    });
+
+    if (this.qdrant && this.qdrant.isConfigured()) {
+      try {
+        if (options.materialize !== false) {
+          await this.materializeSemanticIndex();
+        }
+
+        return await this.qdrant.queryPoints(queryVector, {
+          limit,
+          type: options.type,
+          source: options.source,
+          tags: options.tags,
+          excludeSessionId: options.excludeSessionId,
+        });
+      } catch {
+        return this.searchLocalSemanticEvents({
+          ...options,
+          limit,
+        });
+      }
+    }
+
+    return this.searchLocalSemanticEvents({
+      ...options,
+      limit,
+    });
   }
 }
 

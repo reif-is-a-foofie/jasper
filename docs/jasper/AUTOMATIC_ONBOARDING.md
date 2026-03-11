@@ -14,8 +14,8 @@ jasper
 
 - creating the local Jasper home at `~/.jasper/` by default
 - copying the default identity configuration into the user's config directory
-- creating the local Jasper memory directories
-- provisioning a local Qdrant instance through Docker by default
+- creating the local raw-memory directories
+- provisioning a local open-source Qdrant instance through Docker by default
 - writing a runtime configuration file that later Jasper commands can reuse
 
 ## Current Scope
@@ -37,7 +37,9 @@ Default behavior:
 
 - `jasper setup` attempts to run Qdrant locally through Docker
 - storage is persisted under `~/.jasper/data/qdrant/storage`
-- runtime config records the resolved Qdrant URL and provisioning mode
+- runtime config records the resolved Qdrant URL, collection, and provisioning mode
+- raw events continue to land in `~/.jasper/data/memory` before any semantic indexing happens
+- `jasper memory materialize` is the pipe that pushes raw-memory embeddings into the local semantic index later
 
 Supported setup modes:
 
@@ -67,4 +69,4 @@ The next onboarding milestone is not more packaging. It is guided authentication
 1. validate OpenAI credentials after setup
 2. store a minimal operator config safely
 3. present connector consent steps one system at a time
-4. confirm Jasper can read/write its provisioned vector store automatically
+4. confirm Jasper can materialize raw memory into its provisioned local semantic store automatically

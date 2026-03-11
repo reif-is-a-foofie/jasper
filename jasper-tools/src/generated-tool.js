@@ -51,7 +51,7 @@ export function materializeGeneratedTool(spec, context) {
           throw new Error(`Generated tool "${spec.id}" requires a query`);
         }
 
-        return context.memory.searchSemanticEvents({
+        return await context.memory.searchSemanticEvents({
           query,
           limit: normalizeLimit(input.limit ?? spec.defaults?.limit, 5),
           type: input.type ?? spec.defaults?.type,
