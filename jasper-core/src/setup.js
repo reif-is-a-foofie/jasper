@@ -106,7 +106,7 @@ function inspectDockerContainer(containerName) {
 async function ensureDockerQdrant(options = {}) {
   if (!dockerExists()) {
     throw new Error(
-      "Docker is required for automatic Qdrant provisioning. Install Docker or rerun with --skip-qdrant.",
+      "Docker is only the current developer fallback for Qdrant provisioning. Jasper's packaged app should manage local services internally. For now, install Docker, use --qdrant-url, or rerun with --skip-qdrant.",
     );
   }
 

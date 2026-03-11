@@ -15,7 +15,7 @@ jasper
 - creating the local Jasper home at `~/.jasper/` by default
 - copying the default identity configuration into the user's config directory
 - creating the local raw-memory directories
-- provisioning a local open-source Qdrant instance through Docker by default
+- provisioning a local semantic store without requiring the operator to install infrastructure manually in the packaged product
 - writing a runtime configuration file that later Jasper commands can reuse
 
 ## Current Scope
@@ -33,17 +33,22 @@ For now, operators still need to complete authentication and connector setup man
 
 ## Qdrant Provisioning Model
 
-Default behavior:
+Product target:
+
+- Jasper manages local semantic-store provisioning internally
+- operators should not be asked to install Docker, Homebrew formulas, or database binaries by hand
+- raw events continue to land in `~/.jasper/data/memory` before any semantic indexing happens
+- `jasper memory materialize` is the pipe that pushes raw-memory embeddings into the local semantic index later
+
+Current developer fallback:
 
 - `jasper setup` attempts to run Qdrant locally through Docker
 - storage is persisted under `~/.jasper/data/qdrant/storage`
 - runtime config records the resolved Qdrant URL, collection, and provisioning mode
-- raw events continue to land in `~/.jasper/data/memory` before any semantic indexing happens
-- `jasper memory materialize` is the pipe that pushes raw-memory embeddings into the local semantic index later
 
 Supported setup modes:
 
-- default local Docker provisioning
+- current local Docker fallback
 - `jasper setup --skip-qdrant` for development or CI
 - `jasper setup --qdrant-url URL` for an externally managed Qdrant instance
 
@@ -70,3 +75,9 @@ The next onboarding milestone is not more packaging. It is guided authentication
 2. store a minimal operator config safely
 3. present connector consent steps one system at a time
 4. confirm Jasper can materialize raw memory into its provisioned local semantic store automatically
+
+The packaging milestone after that is app-managed infrastructure:
+
+1. bundle or sidecar the local semantic-store process inside the macOS app
+2. start and stop that process from Jasper, not from Docker
+3. migrate the current developer fallback out of the default user path

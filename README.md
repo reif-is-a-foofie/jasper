@@ -56,7 +56,7 @@ jasper
 
 - The packaged `jasper` launcher uses the bundled native Codex binary plus Jasper-owned JS modules.
 - If `codex-cli/vendor` is already hydrated, the Jasper packager will pick it up automatically.
-- `jasper setup` provisions Jasper's local home directory and a local open-source Qdrant instance through Docker by default.
+- `jasper setup` currently uses Docker as a developer fallback for local Qdrant provisioning. The packaged Jasper app should manage local services internally instead of asking end users to install infrastructure.
 - Jasper writes raw memory into local JSONL logs first, then `jasper memory materialize` can push that history into the local semantic index.
 - End-user OpenAI authentication and guided connector setup are intentionally deferred for now. Packaged users will still need manual credential and connector setup until onboarding is implemented.
 - Some deeper docs and source directories still use Codex naming because the fork inherits upstream internals.

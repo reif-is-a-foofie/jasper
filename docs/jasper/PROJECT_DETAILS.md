@@ -253,6 +253,8 @@ Packaging goals:
 - support future release artifacts that let operators install Jasper without rebuilding the full stack manually
 - provision a default local open-source vector store for new users instead of expecting them to wire infrastructure by hand
 - keep raw event storage local and non-vectorized first, with a separate pipe that materializes semantic index state later
+- for packaged Jasper, provision and manage required local services internally instead of asking operators to install Docker, Homebrew packages, or database binaries themselves
+- treat developer-facing setup shortcuts as temporary bootstraps, not the end-user product model
 - accept that early packaged releases will still require manual OpenAI authentication and connector setup until guided onboarding is implemented
 - document that guided credential onboarding is a future milestone, not a blocker for the current packaging work
 

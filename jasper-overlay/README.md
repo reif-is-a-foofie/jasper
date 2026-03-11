@@ -36,6 +36,7 @@ Installed package behavior:
 
 - `jasper setup` creates `~/.jasper/`, copies the default identity config, writes runtime config, and provisions Qdrant through Docker unless `--skip-qdrant` or `--qdrant-url` is used
 - raw events still land in `~/.jasper/data/memory` first; `jasper memory materialize` is the second-stage semantic pipe
+- Docker is the current developer fallback only. The shipped Jasper app should provision and manage local services internally.
 - `jasper` launches the bundled Codex binary when `vendor/` is present
 - `jasper identity`, `jasper memory`, `jasper dream`, and `jasper tools` work from the packaged Jasper JS modules without requiring a repo checkout
 - OpenAI authentication and connector onboarding are not packaged as a guided flow yet; operators still need to complete those steps manually for now
