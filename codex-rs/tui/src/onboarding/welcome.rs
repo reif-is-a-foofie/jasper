@@ -14,6 +14,8 @@ use ratatui::widgets::Wrap;
 use std::cell::Cell;
 
 use crate::ascii_animation::AsciiAnimation;
+use crate::branding::short_agent_name;
+use crate::branding::welcome_message;
 use crate::onboarding::onboarding_screen::KeyboardHandler;
 use crate::onboarding::onboarding_screen::StepStateProvider;
 use crate::tui::FrameRequester;
@@ -77,6 +79,7 @@ impl WidgetRef for &WelcomeWidget {
             && layout_area.height >= MIN_ANIMATION_HEIGHT
             && layout_area.width >= MIN_ANIMATION_WIDTH;
 
+        let (welcome_prefix, welcome_suffix) = welcome_message();
         let mut lines: Vec<Line> = Vec::new();
         if show_animation {
             let frame = self.animation.current_frame();
@@ -85,9 +88,11 @@ impl WidgetRef for &WelcomeWidget {
         }
         lines.push(Line::from(vec![
             "  ".into(),
-            "Welcome to ".into(),
-            "Codex".bold(),
-            ", OpenAI's command-line coding agent".into(),
+            welcome_prefix.into(),
+            " ".into(),
+            short_agent_name().bold(),
+            " ".into(),
+            welcome_suffix.into(),
         ]));
 
         Paragraph::new(lines)

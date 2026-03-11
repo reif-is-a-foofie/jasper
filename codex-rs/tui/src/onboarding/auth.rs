@@ -35,6 +35,10 @@ use codex_protocol::config_types::ForcedLoginMethod;
 use std::sync::RwLock;
 
 use crate::LoginStatus;
+use crate::branding::auth_pick_mode_line;
+use crate::branding::autonomy_line;
+use crate::branding::docs_label;
+use crate::branding::mistakes_line;
 use crate::onboarding::onboarding_screen::KeyboardHandler;
 use crate::onboarding::onboarding_screen::StepStateProvider;
 use crate::shimmer::shimmer_spans;
@@ -292,10 +296,7 @@ impl AuthModeWidget {
 
     fn render_pick_mode(&self, area: Rect, buf: &mut Buffer) {
         let mut lines: Vec<Line> = vec![
-            Line::from(vec![
-                "  ".into(),
-                "Sign in with ChatGPT to use Codex as part of your paid plan".into(),
-            ]),
+            Line::from(vec!["  ".into(), auth_pick_mode_line().into()]),
             Line::from(vec![
                 "  ".into(),
                 "or connect an API key for usage-based billing".into(),
@@ -444,14 +445,18 @@ impl AuthModeWidget {
             "".into(),
             "  Before you start:".into(),
             "".into(),
-            "  Decide how much autonomy you want to grant Codex".into(),
+            autonomy_line().into(),
             Line::from(vec![
                 "  For more details see the ".into(),
-                "\u{1b}]8;;https://developers.openai.com/codex/security\u{7}Codex docs\u{1b}]8;;\u{7}".underlined(),
+                format!(
+                    "\u{1b}]8;;https://developers.openai.com/codex/security\u{7}{}\u{1b}]8;;\u{7}",
+                    docs_label()
+                )
+                .underlined(),
             ])
             .dim(),
             "".into(),
-            "  Codex can make mistakes".into(),
+            mistakes_line().into(),
             "  Review the code it writes and commands it runs".dim().into(),
             "".into(),
             "  Powered by your ChatGPT account".into(),

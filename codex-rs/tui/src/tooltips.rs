@@ -1,3 +1,4 @@
+use crate::branding::startup_tooltip;
 use codex_core::features::FEATURES;
 use codex_protocol::account::PlanType;
 use lazy_static::lazy_static;
@@ -51,6 +52,10 @@ fn experimental_tooltips() -> Vec<&'static str> {
 
 /// Pick a random tooltip to show to the user when starting Codex.
 pub(crate) fn get_tooltip(plan: Option<PlanType>, fast_mode_enabled: bool) -> Option<String> {
+    if let Some(tooltip) = startup_tooltip() {
+        return Some(tooltip);
+    }
+
     let mut rng = rand::rng();
 
     if let Some(announcement) = announcement::fetch_announcement_tip() {
