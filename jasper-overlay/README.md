@@ -22,4 +22,16 @@ Current launcher behavior:
 - `node jasper-overlay/bin/jasper.js tools list` lists registered Jasper tools
 - `node jasper-overlay/bin/jasper.js tools generate ...` writes a generated Jasper tool
 
+Packaging:
+
+- `python3 jasper-overlay/scripts/build_package.py --version 0.1.0 --staging-dir /tmp/jasper-package` stages a publishable `jasper-codex` package
+- add `--vendor-src codex-cli/vendor` to bundle native Codex binaries and make the package runnable outside the repo
+- add `--pack-output /tmp/jasper-codex-0.1.0.tgz` to emit an installable tarball
+- the resulting package can be installed with `npm install -g /tmp/jasper-codex-0.1.0.tgz`
+
+Installed package behavior:
+
+- `jasper` launches the bundled Codex binary when `vendor/` is present
+- `jasper identity`, `jasper memory`, `jasper dream`, and `jasper tools` work from the packaged Jasper JS modules without requiring a repo checkout
+
 Do not move Jasper behavior into `codex-rs/` or `codex-cli/` unless the core patch gate in `docs/jasper/FORK_STRATEGY.md` is satisfied.

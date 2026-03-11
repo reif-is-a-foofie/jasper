@@ -1,6 +1,28 @@
 {
-  "name": "@jasper/overlay",
-  "private": true,
+  "name": "jasper-codex",
+  "description": "Jasper launcher and runtime package built on the Jasper Codex fork.",
   "type": "module",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "bin": {
+    "jasper": "bin/jasper.js"
+  },
+  "files": [
+    "bin",
+    "jasper-agent",
+    "jasper-core",
+    "jasper-memory",
+    "jasper-tools",
+    "vendor",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reif-is-a-foofie/jasper-codex.git"
+  },
+  "packageManager": "pnpm@10.29.3+sha512.498e1fb4cca5aa06c1dcf2611e6fafc50972ffe7189998c409e90de74566444298ffe43e6cd2acdc775ba1aa7cc5e092a8b7054c811ba8c5770f84693d33d2dc"
 }
