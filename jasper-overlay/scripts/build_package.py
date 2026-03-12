@@ -24,6 +24,9 @@ DEFAULT_VENDOR_SRC = REPO_ROOT / "codex-cli" / "vendor"
 DEFAULT_SEMANTIC_MODEL_SRC = (
     REPO_ROOT / "jasper-core" / "resources" / "semantic-models"
 )
+DEFAULT_SEMANTIC_RUNTIME_SRC = (
+    REPO_ROOT / "jasper-core" / "resources" / "semantic-runtime"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +65,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Directory containing bundled semantic model assets to copy into "
             "jasper-core/resources/semantic-models."
+        ),
+    )
+    parser.add_argument(
+        "--semantic-runtime-src",
+        type=Path,
+        help=(
+            "Directory containing bundled semantic runtime assets to copy into "
+            "jasper-core/resources/semantic-runtime."
         ),
     )
     return parser.parse_args()
@@ -113,11 +124,27 @@ def resolve_semantic_model_src(semantic_model_src: Path | None) -> Path | None:
     return None
 
 
+def resolve_semantic_runtime_src(semantic_runtime_src: Path | None) -> Path | None:
+    if semantic_runtime_src is not None:
+        semantic_runtime_src = semantic_runtime_src.resolve()
+        if not semantic_runtime_src.exists():
+            raise RuntimeError(
+                f"Semantic runtime source directory not found: {semantic_runtime_src}"
+            )
+        return semantic_runtime_src
+
+    if DEFAULT_SEMANTIC_RUNTIME_SRC.exists() and any(DEFAULT_SEMANTIC_RUNTIME_SRC.iterdir()):
+        return DEFAULT_SEMANTIC_RUNTIME_SRC
+
+    return None
+
+
 def stage_package(
     staging_dir: Path,
     version: str,
     vendor_src: Path | None,
     semantic_model_src: Path | None,
+    semantic_runtime_src: Path | None,
 ) -> None:
     bin_dir = staging_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
@@ -143,6 +170,13 @@ def stage_package(
         )
         semantic_model_dst.parent.mkdir(parents=True, exist_ok=True)
         copy_tree(semantic_model_src, semantic_model_dst)
+
+    if semantic_runtime_src is not None:
+        semantic_runtime_dst = (
+            staging_dir / "jasper-core" / "resources" / "semantic-runtime"
+        )
+        semantic_runtime_dst.parent.mkdir(parents=True, exist_ok=True)
+        copy_tree(semantic_runtime_src, semantic_runtime_dst)
 
     with open(PACKAGE_TEMPLATE_PATH, "r", encoding="utf-8") as handle:
         package_json = json.load(handle)
@@ -181,6 +215,7 @@ def main() -> int:
     staging_dir, created_temp = prepare_staging_dir(args.staging_dir)
     vendor_src = resolve_vendor_src(args.vendor_src)
     semantic_model_src = resolve_semantic_model_src(args.semantic_model_src)
+    semantic_runtime_src = resolve_semantic_runtime_src(args.semantic_runtime_src)
 
     if args.pack_output is not None and vendor_src is None:
         raise RuntimeError(
@@ -189,7 +224,13 @@ def main() -> int:
         )
 
     try:
-        stage_package(staging_dir, args.version, vendor_src, semantic_model_src)
+        stage_package(
+            staging_dir,
+            args.version,
+            vendor_src,
+            semantic_model_src,
+            semantic_runtime_src,
+        )
         print(f"Staged Jasper package in {staging_dir}")
 
         if vendor_src is not None:
@@ -207,6 +248,15 @@ def main() -> int:
             print(
                 "No semantic model assets were bundled. Current deterministic memory will work, "
                 "but packaged model-based embeddings should ship with local assets."
+            )
+
+        if semantic_runtime_src is not None:
+            print(f"Bundled semantic runtime assets from {semantic_runtime_src}")
+        else:
+            print(
+                "No semantic runtime assets were bundled. Packaged model-based embeddings will "
+                "still need a bundled ONNX runtime before they can replace the deterministic "
+                "fallback."
             )
 
         if args.pack_output is not None:

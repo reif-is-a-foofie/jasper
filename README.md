@@ -59,7 +59,7 @@ jasper
 - Installable Jasper packages must be self-contained. End users should not need Rust, cargo, or other build tools on PATH.
 - `jasper setup` currently uses Docker as a developer fallback for local Qdrant provisioning. The packaged Jasper app should manage local services internally instead of asking end users to install infrastructure.
 - Jasper writes raw memory into local JSONL logs first, then `jasper memory materialize` can push that history into the local semantic index.
-- The near-term semantic-memory plan is `fastembed` with bundled local model assets plus local-first storage, not a hosted dependency.
+- The near-term semantic-memory plan is `fastembed` with bundled local model and runtime assets plus local-first storage, not a hosted dependency.
 - End-user OpenAI authentication and guided connector setup are intentionally deferred for now. Packaged users will still need manual credential and connector setup until onboarding is implemented.
 - Some deeper docs and source directories still use Codex naming because the fork inherits upstream internals.
 - The maintained Jasper product contract lives in [docs/jasper/PROJECT_DETAILS.md](./docs/jasper/PROJECT_DETAILS.md).

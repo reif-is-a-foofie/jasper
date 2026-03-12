@@ -83,4 +83,4 @@ The packaging milestone after that is app-managed infrastructure:
 1. bundle or sidecar the local semantic-store process inside the macOS app
 2. start and stop that process from Jasper, not from Docker
 3. migrate the current developer fallback out of the default user path
-4. bundle the local embedding model artifacts inside the app so semantic recall works without first-run dependency installs
+4. bundle the local embedding model and ONNX runtime artifacts inside the app so semantic recall works without first-run dependency installs

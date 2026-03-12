@@ -182,6 +182,7 @@ fd-lock = "4.0.4"
 env-flags = "0.1.1"
 env_logger = "0.11.9"
 eventsource-stream = "0.2.3"
+fastembed = { version = "5.12.1", default-features = false, features = ["ort-load-dynamic"] }
 flate2 = "1.1.4"
 futures = { version = "0.3", default-features = false }
 gethostname = "1.1.0"

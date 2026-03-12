@@ -31,6 +31,18 @@ const packagedVendorRoots = [
   path.join(repoRoot, "vendor"),
   path.join(repoRoot, "codex-cli", "vendor"),
 ];
+const semanticModelRoot = path.join(
+  repoRoot,
+  "jasper-core",
+  "resources",
+  "semantic-models",
+);
+const semanticRuntimeRoot = path.join(
+  repoRoot,
+  "jasper-core",
+  "resources",
+  "semantic-runtime",
+);
 const codexHome = path.resolve(
   process.env.CODEX_HOME || path.join(process.env.HOME || "", ".codex"),
 );
@@ -80,6 +92,63 @@ function prependPath(entries, currentPath) {
 function shouldDisableStartupMcp() {
   const value = String(process.env.JASPER_ENABLE_STARTUP_MCP || "").trim();
   return !["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+function resolveSemanticModelDir() {
+  if (process.env.JASPER_SEMANTIC_MODEL_DIR) {
+    return process.env.JASPER_SEMANTIC_MODEL_DIR;
+  }
+
+  return fs.existsSync(semanticModelRoot) ? semanticModelRoot : null;
+}
+
+function semanticRuntimeLibraryNames() {
+  switch (process.platform) {
+    case "darwin":
+      return ["libonnxruntime.dylib"];
+    case "linux":
+    case "android":
+      return ["libonnxruntime.so"];
+    case "win32":
+      return ["onnxruntime.dll"];
+    default:
+      return [];
+  }
+}
+
+function resolveSemanticRuntimeLibrary() {
+  if (process.env.ORT_DYLIB_PATH && fs.existsSync(process.env.ORT_DYLIB_PATH)) {
+    return process.env.ORT_DYLIB_PATH;
+  }
+
+  if (
+    process.env.JASPER_ORT_DYLIB_PATH &&
+    fs.existsSync(process.env.JASPER_ORT_DYLIB_PATH)
+  ) {
+    return process.env.JASPER_ORT_DYLIB_PATH;
+  }
+
+  const runtimeRoot = process.env.JASPER_SEMANTIC_RUNTIME_DIR || semanticRuntimeRoot;
+  if (!fs.existsSync(runtimeRoot)) {
+    return null;
+  }
+
+  const targetTriple = resolveTargetTriple();
+  const libraryNames = semanticRuntimeLibraryNames();
+  for (const libraryName of libraryNames) {
+    const candidates = [
+      targetTriple ? path.join(runtimeRoot, targetTriple, libraryName) : null,
+      path.join(runtimeRoot, libraryName),
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
 }
 
 function configuredMcpDisableArgs() {
@@ -300,6 +369,23 @@ function spawnProcess(command, commandArgs, env) {
   });
 }
 
+function jasperChildEnv(baseEnv) {
+  const env = { ...baseEnv };
+  const modelDir = resolveSemanticModelDir();
+  const runtimeLibrary = resolveSemanticRuntimeLibrary();
+
+  if (modelDir) {
+    env.JASPER_SEMANTIC_MODEL_DIR = modelDir;
+  }
+
+  if (runtimeLibrary) {
+    env.ORT_DYLIB_PATH = runtimeLibrary;
+    env.JASPER_ORT_DYLIB_PATH = runtimeLibrary;
+  }
+
+  return env;
+}
+
 function jasperDeveloperInstructions() {
   const sections = [
     "You are Jasper, the Tauati household intelligence system layered on top of Codex.",
@@ -426,43 +512,43 @@ if (
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "start", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "identity") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "identity", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "memory") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "memory", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "tools") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "tools", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "broker") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "broker", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "dream") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "dream", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else if (subcommand === "setup") {
   child = spawnProcess(
     process.execPath,
     [agentCliPath, "setup", ...args.slice(1)],
-    process.env,
+    jasperChildEnv(process.env),
   );
 } else {
   const codex = resolveCodexCommand();
@@ -471,7 +557,7 @@ if (
   }
 
   child = spawnProcess(codex.command, [...codex.args, ...args], {
-    ...process.env,
+    ...jasperChildEnv(process.env),
     ...codex.env,
     JASPER_BRANDED: "1",
   });

@@ -1,20 +1,43 @@
 use codex_protocol::user_input::UserInput as CoreUserInput;
+use fastembed::InitOptionsUserDefined;
+use fastembed::Pooling;
+use fastembed::TextEmbedding;
+use fastembed::TokenizerFiles;
+use fastembed::UserDefinedEmbeddingModel;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde::Serialize;
+use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use tracing::debug;
 use uuid::Uuid;
 
 const JASPER_BRANDED_ENV_VAR: &str = "JASPER_BRANDED";
 const JASPER_CAPTURE_USER_ACTIVITY_ENV_VAR: &str = "JASPER_CAPTURE_USER_ACTIVITY";
 const JASPER_HOME_ENV_VAR: &str = "JASPER_HOME";
+const JASPER_SEMANTIC_MODEL_DIR_ENV_VAR: &str = "JASPER_SEMANTIC_MODEL_DIR";
 const DEFAULT_EMBEDDING_DIMENSION: usize = 64;
 const DEFAULT_MEMORY_CONTEXT_LIMIT: usize = 3;
 const DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT: usize = 240;
+const DETERMINISTIC_EMBEDDING_ENGINE: &str = "token-hash-v1";
+const FASTEMBED_EMBEDDING_ENGINE: &str = "fastembed-all-minilm-l6-v2-local";
+const FASTEMBED_MODEL_SUBDIR: &str = "fastembed/all-minilm-l6-v2";
+const FASTEMBED_REQUIRED_FILES: &[&str] = &[
+    "model.onnx",
+    "tokenizer.json",
+    "config.json",
+    "special_tokens_map.json",
+    "tokenizer_config.json",
+];
+
+static FASTEMBED_MODELS: Lazy<Mutex<HashMap<PathBuf, SharedFastembedModel>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Serialize)]
 struct SessionRecord {
@@ -77,6 +100,7 @@ struct EmbeddingRecord {
     schema_version: u32,
     event_id: String,
     ts: String,
+    engine: String,
     dimension: usize,
     text: String,
     vector: Vec<f64>,
@@ -105,6 +129,7 @@ struct StoredEmbeddingRecord {
     schema_version: Option<u32>,
     event_id: String,
     ts: Option<String>,
+    engine: Option<String>,
     dimension: Option<usize>,
     text: Option<String>,
     vector: Vec<f64>,
@@ -115,6 +140,14 @@ struct InputCounts {
     local_image_count: usize,
     mention_count: usize,
     skill_count: usize,
+}
+
+type SharedFastembedModel = Arc<Mutex<TextEmbedding>>;
+
+#[derive(Clone)]
+struct QueryEmbedding {
+    engine: &'static str,
+    vector: Vec<f64>,
 }
 
 pub fn is_capture_enabled() -> bool {
@@ -242,11 +275,7 @@ pub fn build_relevant_memory_context(
     }
 
     let jasper_home = default_jasper_home()?;
-    build_relevant_memory_context_from_home(
-        jasper_home.as_path(),
-        query_messages,
-        current_turn_id,
-    )
+    build_relevant_memory_context_from_home(jasper_home.as_path(), query_messages, current_turn_id)
 }
 
 fn record_completed_turn_to_home(
@@ -291,7 +320,10 @@ fn record_completed_turn_to_home(
             turn_id: turn_id.to_string(),
             client_name: client_name.map(ToOwned::to_owned),
             input_message_count: input_messages.len(),
-            input_char_count: input_messages.iter().map(|message| message.chars().count()).sum(),
+            input_char_count: input_messages
+                .iter()
+                .map(|message| message.chars().count())
+                .sum(),
             input_messages,
             assistant_char_count: assistant_message
                 .as_deref()
@@ -310,14 +342,7 @@ fn append_event_with_embedding<T: Serialize>(
     timestamp: String,
 ) -> std::io::Result<()> {
     let embedding_text = event_to_embedding_text(event)?;
-    let embedding = EmbeddingRecord {
-        schema_version: 1,
-        event_id: event.id.clone(),
-        ts: timestamp,
-        dimension: DEFAULT_EMBEDDING_DIMENSION,
-        text: embedding_text.clone(),
-        vector: embed_text(&embedding_text, DEFAULT_EMBEDDING_DIMENSION),
-    };
+    let embedding = build_embedding_record(&event.id, timestamp, embedding_text);
 
     let events_dir = jasper_home
         .join("data")
@@ -380,7 +405,10 @@ fn build_relevant_memory_context_from_home(
         return None;
     }
 
-    let query_vector = embed_text(&query_text, DEFAULT_EMBEDDING_DIMENSION);
+    let query_embeddings = build_query_embeddings(&query_text);
+    if query_embeddings.is_empty() {
+        return None;
+    }
     let event_map = events
         .into_iter()
         .filter(|event| {
@@ -396,7 +424,7 @@ fn build_relevant_memory_context_from_home(
         .into_iter()
         .filter_map(|embedding| {
             let event = event_map.get(&embedding.event_id)?;
-            let similarity = cosine_similarity(&query_vector, &embedding.vector);
+            let similarity = embedding_similarity(&query_embeddings, &embedding)?;
             if similarity <= 0.0 {
                 return None;
             }
@@ -444,6 +472,137 @@ fn event_to_embedding_text<T: Serialize>(event: &EventRecord<T>) -> std::io::Res
     parts.extend(event.tags.iter().cloned());
     parts.push(payload);
     Ok(parts.join(" ").trim().to_string())
+}
+
+fn build_embedding_record(event_id: &str, timestamp: String, text: String) -> EmbeddingRecord {
+    let embedding = primary_embedding(&text);
+    EmbeddingRecord {
+        schema_version: 2,
+        event_id: event_id.to_string(),
+        ts: timestamp,
+        engine: embedding.engine.to_string(),
+        dimension: embedding.vector.len(),
+        text,
+        vector: embedding.vector,
+    }
+}
+
+fn build_query_embeddings(text: &str) -> Vec<QueryEmbedding> {
+    let mut embeddings = Vec::new();
+    if let Some(vector) = try_fastembed_text(text) {
+        embeddings.push(QueryEmbedding {
+            engine: FASTEMBED_EMBEDDING_ENGINE,
+            vector,
+        });
+    }
+    embeddings.push(QueryEmbedding {
+        engine: DETERMINISTIC_EMBEDDING_ENGINE,
+        vector: deterministic_embed_text(text, DEFAULT_EMBEDDING_DIMENSION),
+    });
+    embeddings
+}
+
+fn primary_embedding(text: &str) -> QueryEmbedding {
+    if let Some(vector) = try_fastembed_text(text) {
+        return QueryEmbedding {
+            engine: FASTEMBED_EMBEDDING_ENGINE,
+            vector,
+        };
+    }
+
+    QueryEmbedding {
+        engine: DETERMINISTIC_EMBEDDING_ENGINE,
+        vector: deterministic_embed_text(text, DEFAULT_EMBEDDING_DIMENSION),
+    }
+}
+
+fn try_fastembed_text(value: &str) -> Option<Vec<f64>> {
+    let shared_model = fastembed_model()?;
+    let mut model = shared_model.lock().ok()?;
+    let embeddings = model.embed(vec![value], None).ok()?;
+    let vector = embeddings.into_iter().next()?;
+    Some(normalize_f32_vector(vector))
+}
+
+fn fastembed_model() -> Option<SharedFastembedModel> {
+    let model_dir = fastembed_model_dir()?;
+
+    if let Some(existing) = FASTEMBED_MODELS
+        .lock()
+        .ok()
+        .and_then(|cache| cache.get(&model_dir).cloned())
+    {
+        return Some(existing);
+    }
+
+    let model = match load_fastembed_model(&model_dir) {
+        Ok(model) => Arc::new(Mutex::new(model)),
+        Err(error) => {
+            debug!(
+                "jasper memory falling back to deterministic embeddings: {}",
+                error
+            );
+            return None;
+        }
+    };
+
+    let mut cache = FASTEMBED_MODELS.lock().ok()?;
+    let entry = cache.entry(model_dir).or_insert_with(|| Arc::clone(&model));
+    Some(Arc::clone(entry))
+}
+
+fn load_fastembed_model(model_dir: &Path) -> anyhow::Result<TextEmbedding> {
+    let onnx_path = resolve_fastembed_onnx_path(model_dir)
+        .ok_or_else(|| anyhow::anyhow!("missing ONNX model file in {}", model_dir.display()))?;
+    let onnx_file = std::fs::read(onnx_path)?;
+    let tokenizer_files = TokenizerFiles {
+        tokenizer_file: std::fs::read(model_dir.join("tokenizer.json"))?,
+        config_file: std::fs::read(model_dir.join("config.json"))?,
+        special_tokens_map_file: std::fs::read(model_dir.join("special_tokens_map.json"))?,
+        tokenizer_config_file: std::fs::read(model_dir.join("tokenizer_config.json"))?,
+    };
+    let model =
+        UserDefinedEmbeddingModel::new(onnx_file, tokenizer_files).with_pooling(Pooling::Mean);
+    Ok(TextEmbedding::try_new_from_user_defined(
+        model,
+        InitOptionsUserDefined::default(),
+    )?)
+}
+
+fn fastembed_model_dir() -> Option<PathBuf> {
+    let model_root = std::env::var_os(JASPER_SEMANTIC_MODEL_DIR_ENV_VAR)
+        .map(PathBuf::from)
+        .or_else(|| default_jasper_home().map(|home| home.join("models")))?;
+    let model_dir = model_root.join(FASTEMBED_MODEL_SUBDIR);
+
+    if fastembed_model_files_present(&model_dir) {
+        Some(model_dir)
+    } else {
+        None
+    }
+}
+
+fn fastembed_model_files_present(model_dir: &Path) -> bool {
+    FASTEMBED_REQUIRED_FILES
+        .iter()
+        .all(|file_name| model_dir.join(file_name).exists())
+}
+
+fn resolve_fastembed_onnx_path(model_dir: &Path) -> Option<PathBuf> {
+    let default_model = model_dir.join("model.onnx");
+    if default_model.exists() {
+        return Some(default_model);
+    }
+
+    std::fs::read_dir(model_dir)
+        .ok()?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.extension()
+                .and_then(|extension| extension.to_str())
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("onnx"))
+        })
 }
 
 fn collect_text_items(items: &[CoreUserInput]) -> Vec<String> {
@@ -539,13 +698,46 @@ fn normalize_vector(vector: Vec<f64>) -> Vec<f64> {
         .collect()
 }
 
-fn embed_text(value: &str, dimension: usize) -> Vec<f64> {
+fn normalize_f32_vector(vector: Vec<f32>) -> Vec<f64> {
+    normalize_vector(vector.into_iter().map(f64::from).collect())
+}
+
+fn deterministic_embed_text(value: &str, dimension: usize) -> Vec<f64> {
     let mut vector = vec![0.0; dimension.max(8)];
     for token in tokenize(value) {
         let index = hash_token(&token, vector.len());
         vector[index] += 1.0;
     }
     normalize_vector(vector)
+}
+
+fn embedding_similarity(
+    query_embeddings: &[QueryEmbedding],
+    embedding: &StoredEmbeddingRecord,
+) -> Option<f64> {
+    let stored_engine = stored_embedding_engine(embedding);
+    let stored_dimension = embedding.dimension.unwrap_or(embedding.vector.len());
+
+    query_embeddings
+        .iter()
+        .find(|query| {
+            if !stored_engine.is_empty() {
+                query.engine == stored_engine
+            } else {
+                query.vector.len() == stored_dimension
+            }
+        })
+        .map(|query| cosine_similarity(&query.vector, &embedding.vector))
+}
+
+fn stored_embedding_engine(embedding: &StoredEmbeddingRecord) -> &str {
+    embedding.engine.as_deref().unwrap_or_else(|| {
+        if embedding.dimension.unwrap_or(embedding.vector.len()) == DEFAULT_EMBEDDING_DIMENSION {
+            DETERMINISTIC_EMBEDDING_ENGINE
+        } else {
+            ""
+        }
+    })
 }
 
 fn cosine_similarity(left: &[f64], right: &[f64]) -> f64 {
@@ -588,10 +780,7 @@ fn read_jsonl<T: for<'de> Deserialize<'de>>(path: &Path) -> Vec<T> {
 }
 
 fn stored_turn_id(event: &StoredEventRecord) -> Option<&str> {
-    event
-        .payload
-        .get("turnId")
-        .and_then(|value| value.as_str())
+    event.payload.get("turnId").and_then(|value| value.as_str())
 }
 
 fn truncate_text(value: &str, max_chars: usize) -> String {
@@ -627,7 +816,9 @@ fn format_memory_line(event: &StoredEventRecord) -> Option<String> {
                     "- {date}: user said \"{user}\"; Jasper responded \"{assistant}\""
                 )),
                 (Some(user), None) => Some(format!("- {date}: user said \"{user}\"")),
-                (None, Some(assistant)) => Some(format!("- {date}: Jasper responded \"{assistant}\"")),
+                (None, Some(assistant)) => {
+                    Some(format!("- {date}: Jasper responded \"{assistant}\""))
+                }
                 (None, None) => None,
             }
         }
@@ -635,7 +826,12 @@ fn format_memory_line(event: &StoredEventRecord) -> Option<String> {
             .payload
             .get("text")
             .and_then(|value| value.as_str())
-            .map(|value| format!("- {date}: user said \"{}\"", truncate_text(value, DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT))),
+            .map(|value| {
+                format!(
+                    "- {date}: user said \"{}\"",
+                    truncate_text(value, DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT)
+                )
+            }),
         _ => None,
     }
 }
@@ -714,6 +910,7 @@ mod tests {
         let embedding_line = std::fs::read_to_string(&embedding_path)?;
         let embedding: JsonValue = serde_json::from_str(embedding_line.trim())?;
         assert_eq!(embedding["eventId"], event["id"]);
+        assert_eq!(embedding["engine"], DETERMINISTIC_EMBEDDING_ENGINE);
         assert_eq!(embedding["dimension"], 64);
         assert_eq!(embedding["vector"].as_array().map(|v| v.len()), Some(64));
         Ok(())
@@ -785,6 +982,7 @@ mod tests {
             .ok_or_else(|| anyhow::anyhow!("missing embedding line"))?;
         let embedding: JsonValue = serde_json::from_str(last_embedding_line)?;
         assert_eq!(embedding["eventId"], event["id"]);
+        assert_eq!(embedding["engine"], DETERMINISTIC_EMBEDDING_ENGINE);
         assert_eq!(embedding["dimension"], 64);
         Ok(())
     }
@@ -822,5 +1020,23 @@ mod tests {
         assert!(context.contains("Ozark, Missouri"));
         assert!(context.contains("Jasper responded"));
         Ok(())
+    }
+
+    #[test]
+    fn embedding_similarity_matches_legacy_deterministic_records() {
+        let query_embeddings = build_query_embeddings("household follow up");
+        let embedding = StoredEmbeddingRecord {
+            schema_version: Some(1),
+            event_id: "evt_legacy".to_string(),
+            ts: None,
+            engine: None,
+            dimension: Some(DEFAULT_EMBEDDING_DIMENSION),
+            text: Some("household follow up".to_string()),
+            vector: deterministic_embed_text("household follow up", DEFAULT_EMBEDDING_DIMENSION),
+        };
+
+        let similarity = embedding_similarity(&query_embeddings, &embedding)
+            .expect("legacy deterministic embeddings should still match");
+        assert!(similarity > 0.99);
     }
 }
