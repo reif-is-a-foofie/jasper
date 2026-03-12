@@ -16,6 +16,7 @@ jasper
 - copying the default identity configuration into the user's config directory
 - creating the local raw-memory directories
 - provisioning a local semantic store without requiring the operator to install infrastructure manually in the packaged product
+- ensuring packaged Jasper dependencies are self-contained instead of assuming Rust, cargo, Docker, MCP servers, or model runtimes exist on the operator machine
 - writing a runtime configuration file that later Jasper commands can reuse
 
 ## Current Scope
@@ -37,6 +38,7 @@ Product target:
 
 - Jasper manages local semantic-store provisioning internally
 - operators should not be asked to install Docker, Homebrew formulas, or database binaries by hand
+- installer packages must bundle the native runtime and any required local semantic-model assets
 - raw events continue to land in `~/.jasper/data/memory` before any semantic indexing happens
 - `jasper memory materialize` is the pipe that pushes raw-memory embeddings into the local semantic index later
 
@@ -81,3 +83,4 @@ The packaging milestone after that is app-managed infrastructure:
 1. bundle or sidecar the local semantic-store process inside the macOS app
 2. start and stop that process from Jasper, not from Docker
 3. migrate the current developer fallback out of the default user path
+4. bundle the local embedding model artifacts inside the app so semantic recall works without first-run dependency installs

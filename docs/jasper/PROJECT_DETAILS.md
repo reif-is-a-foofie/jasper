@@ -64,7 +64,7 @@ Functions:
 
 Jasper must maintain structured memory across time.
 
-Memory hierarchy:
+Memory artifact hierarchy:
 
 - Level 1: raw events
 - Level 2: embedded vectors
@@ -83,14 +83,29 @@ memory/
 
 Vector search enables retrieval of relevant past information.
 
+Operational memory bands:
+
+- Working memory: the live thread, recent turns, and current execution context Jasper must consult on every turn
+- Episodic memory: timestamped events, completed turns, people, facts, and outcomes Jasper should be able to recall later
+- Strategic memory: goals, commitments, preferences, constraints, and long-horizon patterns Jasper should preserve across sessions
+
+Implementation rule:
+
+- raw events and completed-turn semantic snapshots feed working and episodic memory first
+- strategic memory is a later abstraction layer built from reflection, consolidation, and project-state synthesis
+- dream state should strengthen strategic memory, not replace first-pass live capture
+
 Memory capture requirement:
 
 - every explicit user action must be recorded as a raw event before any semantic materialization
 - raw-event capture should return immediately while embedding/materialization runs asynchronously
 - while Jasper is live, each completed turn should produce an asynchronous semantic-memory snapshot of the turn context
+- every turn should retrieve relevant working and episodic memory back into the live reasoning context while the session remains open
 - dream state is for later consolidation, reflection, and chunking rather than first-pass turn capture
 - the first required user-activity source is submitted chat text
 - later phases extend the same event contract to tools, approvals, terminal activity, filesystem actions, and connector events
+- the near-term local semantic stack should use a lightweight open-source embedder first and only introduce a separate semantic-store boundary when packaging or scale requires it
+- the current intended embedder path is `fastembed` with bundled local model assets, while raw-event storage remains the source of truth
 
 ### 3. Guardian System
 
@@ -288,9 +303,11 @@ Packaging goals:
 - provide a reproducible local install path for macOS, Linux, and Windows-compatible environments
 - keep launcher, identity, memory, and tool systems packageable as Jasper-owned modules
 - support future release artifacts that let operators install Jasper without rebuilding the full stack manually
+- require Jasper installer packages to be self-contained, including the native runtime and any local semantic-model assets they depend on
 - provision a default local open-source vector store for new users instead of expecting them to wire infrastructure by hand
 - keep raw event storage local and non-vectorized first, with a separate pipe that materializes semantic index state later
 - for packaged Jasper, provision and manage required local services internally instead of asking operators to install Docker, Homebrew packages, or database binaries themselves
+- do not require end users to install Rust, cargo, Docker, Homebrew packages, model runtimes, or MCP servers by hand
 - treat developer-facing setup shortcuts as temporary bootstraps, not the end-user product model
 - accept that early packaged releases will still require manual OpenAI authentication and connector setup until guided onboarding is implemented
 - document that guided credential onboarding is a future milestone, not a blocker for the current packaging work

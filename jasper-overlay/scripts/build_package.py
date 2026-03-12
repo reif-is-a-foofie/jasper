@@ -21,6 +21,9 @@ PACKAGE_SOURCE_DIRS = (
     "jasper-tools",
 )
 DEFAULT_VENDOR_SRC = REPO_ROOT / "codex-cli" / "vendor"
+DEFAULT_SEMANTIC_MODEL_SRC = (
+    REPO_ROOT / "jasper-core" / "resources" / "semantic-models"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,6 +54,14 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Directory containing vendor/<target> trees to bundle into the package. "
             "Use codex-cli/vendor after hydrating native dependencies."
+        ),
+    )
+    parser.add_argument(
+        "--semantic-model-src",
+        type=Path,
+        help=(
+            "Directory containing bundled semantic model assets to copy into "
+            "jasper-core/resources/semantic-models."
         ),
     )
     return parser.parse_args()
@@ -87,7 +98,27 @@ def resolve_vendor_src(vendor_src: Path | None) -> Path | None:
     return None
 
 
-def stage_package(staging_dir: Path, version: str, vendor_src: Path | None) -> None:
+def resolve_semantic_model_src(semantic_model_src: Path | None) -> Path | None:
+    if semantic_model_src is not None:
+        semantic_model_src = semantic_model_src.resolve()
+        if not semantic_model_src.exists():
+            raise RuntimeError(
+                f"Semantic model source directory not found: {semantic_model_src}"
+            )
+        return semantic_model_src
+
+    if DEFAULT_SEMANTIC_MODEL_SRC.exists() and any(DEFAULT_SEMANTIC_MODEL_SRC.iterdir()):
+        return DEFAULT_SEMANTIC_MODEL_SRC
+
+    return None
+
+
+def stage_package(
+    staging_dir: Path,
+    version: str,
+    vendor_src: Path | None,
+    semantic_model_src: Path | None,
+) -> None:
     bin_dir = staging_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(OVERLAY_ROOT / "bin" / "jasper.js", bin_dir / "jasper.js")
@@ -105,6 +136,13 @@ def stage_package(staging_dir: Path, version: str, vendor_src: Path | None) -> N
 
     if vendor_src is not None:
         copy_tree(vendor_src, staging_dir / "vendor")
+
+    if semantic_model_src is not None:
+        semantic_model_dst = (
+            staging_dir / "jasper-core" / "resources" / "semantic-models"
+        )
+        semantic_model_dst.parent.mkdir(parents=True, exist_ok=True)
+        copy_tree(semantic_model_src, semantic_model_dst)
 
     with open(PACKAGE_TEMPLATE_PATH, "r", encoding="utf-8") as handle:
         package_json = json.load(handle)
@@ -142,9 +180,16 @@ def main() -> int:
     args = parse_args()
     staging_dir, created_temp = prepare_staging_dir(args.staging_dir)
     vendor_src = resolve_vendor_src(args.vendor_src)
+    semantic_model_src = resolve_semantic_model_src(args.semantic_model_src)
+
+    if args.pack_output is not None and vendor_src is None:
+        raise RuntimeError(
+            "Cannot emit an installable Jasper package without a bundled native runtime. "
+            "Hydrate codex-cli/vendor or pass --vendor-src explicitly."
+        )
 
     try:
-        stage_package(staging_dir, args.version, vendor_src)
+        stage_package(staging_dir, args.version, vendor_src, semantic_model_src)
         print(f"Staged Jasper package in {staging_dir}")
 
         if vendor_src is not None:
@@ -154,6 +199,14 @@ def main() -> int:
                 "No vendor payload was bundled. Identity, memory, tool, and dream commands "
                 "will work, but the default Jasper TUI launch requires vendor/ or "
                 "JASPER_CODEX_BIN."
+            )
+
+        if semantic_model_src is not None:
+            print(f"Bundled semantic model assets from {semantic_model_src}")
+        else:
+            print(
+                "No semantic model assets were bundled. Current deterministic memory will work, "
+                "but packaged model-based embeddings should ship with local assets."
             )
 
         if args.pack_output is not None:
