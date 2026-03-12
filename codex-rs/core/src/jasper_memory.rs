@@ -1,18 +1,29 @@
 use codex_protocol::user_input::UserInput as CoreUserInput;
+use serde::Deserialize;
 use serde::Serialize;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::cmp::Ordering;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 const JASPER_BRANDED_ENV_VAR: &str = "JASPER_BRANDED";
 const JASPER_CAPTURE_USER_ACTIVITY_ENV_VAR: &str = "JASPER_CAPTURE_USER_ACTIVITY";
 const JASPER_HOME_ENV_VAR: &str = "JASPER_HOME";
 const DEFAULT_EMBEDDING_DIMENSION: usize = 64;
+const DEFAULT_MEMORY_CONTEXT_LIMIT: usize = 3;
+const DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT: usize = 240;
 
 #[derive(Serialize)]
 struct SessionRecord {
+    id: String,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Clone)]
+struct StoredSessionRecord {
     id: String,
 }
 
@@ -68,6 +79,34 @@ struct EmbeddingRecord {
     ts: String,
     dimension: usize,
     text: String,
+    vector: Vec<f64>,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct StoredEventRecord {
+    schema_version: Option<u32>,
+    id: String,
+    ts: String,
+    #[serde(rename = "type")]
+    event_type: String,
+    source: String,
+    #[serde(default)]
+    tags: Vec<String>,
+    session: StoredSessionRecord,
+    payload: serde_json::Value,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredEmbeddingRecord {
+    schema_version: Option<u32>,
+    event_id: String,
+    ts: Option<String>,
+    dimension: Option<usize>,
+    text: Option<String>,
     vector: Vec<f64>,
 }
 
@@ -194,6 +233,22 @@ fn record_submitted_turn_to_home(
     append_event_with_embedding(jasper_home, &event, timestamp)
 }
 
+pub fn build_relevant_memory_context(
+    query_messages: &[String],
+    current_turn_id: Option<&str>,
+) -> Option<String> {
+    if !is_capture_enabled() {
+        return None;
+    }
+
+    let jasper_home = default_jasper_home()?;
+    build_relevant_memory_context_from_home(
+        jasper_home.as_path(),
+        query_messages,
+        current_turn_id,
+    )
+}
+
 fn record_completed_turn_to_home(
     jasper_home: &Path,
     thread_id: &str,
@@ -289,6 +344,96 @@ fn append_json_line<T: Serialize>(path: PathBuf, value: &T) -> std::io::Result<(
     file.write_all(line.as_bytes())?;
     file.write_all(b"\n")?;
     Ok(())
+}
+
+fn build_relevant_memory_context_from_home(
+    jasper_home: &Path,
+    query_messages: &[String],
+    current_turn_id: Option<&str>,
+) -> Option<String> {
+    let query_text = query_messages
+        .iter()
+        .map(|message| message.trim())
+        .filter(|message| !message.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    if query_text.trim().is_empty() {
+        return None;
+    }
+
+    let events_path = jasper_home
+        .join("data")
+        .join("memory")
+        .join("data")
+        .join("events")
+        .join("events.jsonl");
+    let embeddings_path = jasper_home
+        .join("data")
+        .join("memory")
+        .join("data")
+        .join("embeddings")
+        .join("events.jsonl");
+
+    let events = read_events(&events_path);
+    let embeddings = read_embeddings(&embeddings_path);
+    if events.is_empty() || embeddings.is_empty() {
+        return None;
+    }
+
+    let query_vector = embed_text(&query_text, DEFAULT_EMBEDDING_DIMENSION);
+    let event_map = events
+        .into_iter()
+        .filter(|event| {
+            current_turn_id.is_none_or(|turn_id| stored_turn_id(event) != Some(turn_id))
+        })
+        .map(|event| (event.id.clone(), event))
+        .collect::<HashMap<_, _>>();
+    if event_map.is_empty() {
+        return None;
+    }
+
+    let mut ranked = embeddings
+        .into_iter()
+        .filter_map(|embedding| {
+            let event = event_map.get(&embedding.event_id)?;
+            let similarity = cosine_similarity(&query_vector, &embedding.vector);
+            if similarity <= 0.0 {
+                return None;
+            }
+
+            let mut score = similarity;
+            if event.event_type == "conversation.turn.completed" {
+                score += 0.15;
+            }
+            if shares_query_token(event, &query_text) {
+                score += 0.05;
+            }
+
+            Some((score, event))
+        })
+        .collect::<Vec<_>>();
+
+    ranked.sort_by(|left, right| {
+        right
+            .0
+            .partial_cmp(&left.0)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| right.1.ts.cmp(&left.1.ts))
+    });
+
+    let lines = ranked
+        .into_iter()
+        .filter_map(|(_, event)| format_memory_line(event))
+        .take(DEFAULT_MEMORY_CONTEXT_LIMIT)
+        .collect::<Vec<_>>();
+    if lines.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "<jasper_memory_context>\nRelevant Jasper memory:\n{}\nUse these notes only as background context for the current turn.\n</jasper_memory_context>",
+        lines.join("\n")
+    ))
 }
 
 fn event_to_embedding_text<T: Serialize>(event: &EventRecord<T>) -> std::io::Result<String> {
@@ -401,6 +546,113 @@ fn embed_text(value: &str, dimension: usize) -> Vec<f64> {
         vector[index] += 1.0;
     }
     normalize_vector(vector)
+}
+
+fn cosine_similarity(left: &[f64], right: &[f64]) -> f64 {
+    let len = left.len().min(right.len());
+    if len == 0 {
+        return 0.0;
+    }
+
+    let mut dot = 0.0;
+    let mut left_mag = 0.0;
+    let mut right_mag = 0.0;
+    for index in 0..len {
+        dot += left[index] * right[index];
+        left_mag += left[index] * left[index];
+        right_mag += right[index] * right[index];
+    }
+    if left_mag == 0.0 || right_mag == 0.0 {
+        return 0.0;
+    }
+    dot / (left_mag.sqrt() * right_mag.sqrt())
+}
+
+fn read_events(path: &Path) -> Vec<StoredEventRecord> {
+    read_jsonl(path)
+}
+
+fn read_embeddings(path: &Path) -> Vec<StoredEmbeddingRecord> {
+    read_jsonl(path)
+}
+
+fn read_jsonl<T: for<'de> Deserialize<'de>>(path: &Path) -> Vec<T> {
+    let Ok(contents) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+
+    contents
+        .lines()
+        .filter_map(|line| serde_json::from_str::<T>(line).ok())
+        .collect()
+}
+
+fn stored_turn_id(event: &StoredEventRecord) -> Option<&str> {
+    event
+        .payload
+        .get("turnId")
+        .and_then(|value| value.as_str())
+}
+
+fn truncate_text(value: &str, max_chars: usize) -> String {
+    let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut chars = normalized.chars();
+    let truncated = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{}…", truncated.trim_end())
+    } else {
+        truncated
+    }
+}
+
+fn format_memory_line(event: &StoredEventRecord) -> Option<String> {
+    let date = event.ts.get(..10).unwrap_or(event.ts.as_str());
+    match event.event_type.as_str() {
+        "conversation.turn.completed" => {
+            let user = event
+                .payload
+                .get("inputMessages")
+                .and_then(|value| value.as_array())
+                .and_then(|messages| messages.last())
+                .and_then(|value| value.as_str())
+                .map(|value| truncate_text(value, DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT));
+            let assistant = event
+                .payload
+                .get("lastAssistantMessage")
+                .and_then(|value| value.as_str())
+                .map(|value| truncate_text(value, DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT));
+
+            match (user, assistant) {
+                (Some(user), Some(assistant)) => Some(format!(
+                    "- {date}: user said \"{user}\"; Jasper responded \"{assistant}\""
+                )),
+                (Some(user), None) => Some(format!("- {date}: user said \"{user}\"")),
+                (None, Some(assistant)) => Some(format!("- {date}: Jasper responded \"{assistant}\"")),
+                (None, None) => None,
+            }
+        }
+        "user.chat.submitted" => event
+            .payload
+            .get("text")
+            .and_then(|value| value.as_str())
+            .map(|value| format!("- {date}: user said \"{}\"", truncate_text(value, DEFAULT_MEMORY_CONTEXT_CHAR_LIMIT))),
+        _ => None,
+    }
+}
+
+fn shares_query_token(event: &StoredEventRecord, query_text: &str) -> bool {
+    let query_tokens = tokenize(query_text);
+    if query_tokens.is_empty() {
+        return false;
+    }
+
+    let haystack = serde_json::to_string(&event.payload)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    query_tokens
+        .into_iter()
+        .filter(|token| token.len() > 2)
+        .any(|token| haystack.contains(&token))
 }
 
 #[cfg(test)]
@@ -534,6 +786,41 @@ mod tests {
         let embedding: JsonValue = serde_json::from_str(last_embedding_line)?;
         assert_eq!(embedding["eventId"], event["id"]);
         assert_eq!(embedding["dimension"], 64);
+        Ok(())
+    }
+
+    #[test]
+    fn build_relevant_memory_context_returns_semantic_summary() -> Result<()> {
+        let jasper_home = TempDir::new()?;
+
+        record_submitted_turn_to_home(
+            jasper_home.path(),
+            "thread_abc",
+            "turn_001",
+            Some("jasper-tui"),
+            &[CoreUserInput::Text {
+                text: "I live in Ozark, Missouri.".to_string(),
+                text_elements: vec![],
+            }],
+        )?;
+        record_completed_turn_to_home(
+            jasper_home.path(),
+            "thread_abc",
+            "turn_001",
+            Some("jasper-tui"),
+            &["I live in Ozark, Missouri.".to_string()],
+            Some("I’ll use Ozark, Missouri as your location context."),
+        )?;
+
+        let context = build_relevant_memory_context_from_home(
+            jasper_home.path(),
+            &["Where do I live?".to_string()],
+            Some("turn_002"),
+        )
+        .ok_or_else(|| anyhow::anyhow!("missing relevant memory context"))?;
+
+        assert!(context.contains("Ozark, Missouri"));
+        assert!(context.contains("Jasper responded"));
         Ok(())
     }
 }

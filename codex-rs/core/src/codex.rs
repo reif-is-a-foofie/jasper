@@ -5125,7 +5125,7 @@ pub(crate) async fn run_turn(
         }
 
         // Construct the input that we will send to the model.
-        let sampling_request_input: Vec<ResponseItem> = {
+        let mut sampling_request_input: Vec<ResponseItem> = {
             sess.clone_history()
                 .await
                 .for_prompt(&turn_context.model_info.input_modalities)
@@ -5139,6 +5139,20 @@ pub(crate) async fn run_turn(
             })
             .map(|user_message| user_message.message())
             .collect::<Vec<String>>();
+        if let Some(memory_context) = crate::jasper_memory::build_relevant_memory_context(
+            &sampling_request_input_messages,
+            Some(turn_context.sub_id.as_str()),
+        ) {
+            sampling_request_input.push(ResponseItem::Message {
+                id: None,
+                role: "user".to_string(),
+                content: vec![ContentItem::InputText {
+                    text: memory_context,
+                }],
+                end_turn: None,
+                phase: None,
+            });
+        }
         let turn_metadata_header = turn_context.turn_metadata_state.current_header_value();
         match run_sampling_request(
             Arc::clone(&sess),
