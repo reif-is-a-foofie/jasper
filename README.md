@@ -3,6 +3,9 @@
 <p align="center">
   Jasper adds identity, persistent memory, environment listeners, reflections, and tool generation on top of the upstream runtime while keeping the fork update-safe.
 </p>
+<p align="center">
+  Jasper's north star is simple: if you can do <code>X</code> alone, you should be able to do <code>2X</code> with Jasper.
+</p>
 
 ---
 
@@ -69,6 +72,8 @@ jasper
 ## Docs
 
 - [**Jasper PRD**](./docs/jasper/PROJECT_DETAILS.md)
+- [**Jasper Vision**](./docs/jasper/VISION.md)
+- [**Jasper Roadmap**](./docs/jasper/ROADMAP.md)
 - [**Jasper Onboarding**](./docs/jasper/AUTOMATIC_ONBOARDING.md)
 - [**Jasper Tool Acquisition**](./docs/jasper/TOOL_ACQUISITION.md)
 - [**Jasper Fork Strategy**](./docs/jasper/FORK_STRATEGY.md)

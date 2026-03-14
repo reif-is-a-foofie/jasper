@@ -11,6 +11,35 @@ Build a continuously operating artificial intelligence system that:
 - observes and organizes information streams
 - autonomously improves its capabilities
 
+## Product Vision
+
+Jasper doubles the operator.
+
+If Reif can do `X` alone, Reif with Jasper should be able to do `2X` with more clarity, less cognitive overhead, and higher reliability.
+
+This vision is intentionally simple because it should orient hundreds of small product and engineering decisions.
+
+Jasper is not just a chatbot. It is a force multiplier for:
+
+- judgment
+- memory
+- execution
+- protection
+- continuity
+
+See `docs/jasper/VISION.md` for the fuller articulation and `docs/jasper/ROADMAP.md` for the milestone ladder.
+
+## Product Decision Rule
+
+When choosing between two or three plausible options, prefer the one that gets Jasper to a reliable `2X` force multiplier fastest.
+
+Tie-breakers:
+
+- daily leverage beats novelty
+- end-to-end usefulness beats architectural elegance in isolation
+- autonomy with explicit consent beats manual ceremony
+- live terminal usefulness beats synthetic benchmark wins
+
 The system must function as:
 
 1. Personal operating system
