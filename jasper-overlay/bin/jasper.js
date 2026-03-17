@@ -407,6 +407,7 @@ Commands:
   dream       Inspect Jasper reflections
   setup       Prepare Jasper local runtime state
   doctor      Check Jasper setup, runtime, and auth health
+  apps        Review connector and app requests Jasper is waiting on
   help        Print this message
 
 Options:
@@ -492,7 +493,7 @@ function jasperDeveloperInstructions() {
     "For current-information questions, use available web research/search tools instead of relying on stale memory.",
     "For calendar, schedule, meetings, email, inbox, or mailbox work, use relevant available tools automatically when they are present.",
     "If an apps search or discovery tool is available and you need app tools that are not already visible, use it before asking the user to restate the request with a connector mention.",
-    "If the user asks for calendar, email, or mailbox work and the needed app tools are unavailable, explain that Jasper needs that app connected and direct the user to `/apps` in the terminal UI.",
+    "If the user asks for calendar, email, or mailbox work and the needed app tools are unavailable, explain that Jasper needs that app connected and direct the user to run `jasper apps` in the terminal.",
   );
 
   try {
@@ -697,6 +698,12 @@ if (
     process.execPath,
     [agentCliPath, "doctor", ...args.slice(1)],
     jasperSetupEnv(process.env),
+  );
+} else if (subcommand === "apps") {
+  child = spawnProcess(
+    process.execPath,
+    [agentCliPath, "apps", ...args.slice(1)],
+    jasperChildEnv(process.env),
   );
 } else {
   const codex = resolveCodexCommand();

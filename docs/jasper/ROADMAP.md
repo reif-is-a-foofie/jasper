@@ -64,7 +64,7 @@ The roadmap is not one monolithic blob. It compounds across a small set of produ
    Outcome: a new operator can install Jasper, authenticate, and reach a healthy first-run state without manual spelunking.
 
 9. **Milestone 9: Consent-Driven Connector Operations**  
-   Status: next.  
+   Status: active.  
    Outcome: calendar, mail, and related household connectors become natural Jasper capabilities with explicit consent boundaries.
 
 10. **Milestone 10: Background Monitoring And Daily Digest**  

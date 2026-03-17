@@ -41,7 +41,7 @@ Current onboarding behavior:
 - if setup is interactive and auth is still missing, it can inline the existing Codex login flow instead of forcing a separate command detour
 - `jasper doctor` reports setup, runtime, auth, and local semantic-store health with suggested follow-up steps
 - Jasper can already auto-surface installed calendar and mailbox tools from normal household prompts during chat
-- if the user asks for household app access and the connector is still missing, Jasper should direct them to `/apps` in the terminal UI
+- if the user asks for household app access and the connector is still missing, Jasper should direct them to `jasper apps` in the terminal
 
 ## Qdrant Provisioning Model
 

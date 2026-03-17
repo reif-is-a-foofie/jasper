@@ -1,5 +1,9 @@
 # Jasper Milestone 9
 
+## Status
+
+Active.
+
 ## Objective
 
 Make household connectors feel like native Jasper abilities while preserving explicit consent boundaries.
@@ -14,7 +18,7 @@ Delivered here:
 - one-system-at-a-time consent guidance for mailbox, calendar, and related household tools
 - automatic post-consent activation of newly available tools
 - connector state remembered in Jasper memory and surfaced in user-facing status
-- strong remediation path through `/apps` when required access is still missing
+- strong remediation path through `jasper apps` when required access is still missing
 
 ## Success Condition
 
@@ -40,6 +44,7 @@ If app discovery needs fork support, the patch boundary should stay narrow and J
 ## Verification
 
 ```bash
+jasper apps
 jasper
 ```
 
@@ -52,5 +57,6 @@ Run live prompts:
 Expected outcome:
 
 - Jasper uses available connectors automatically
-- missing connectors trigger a clear consent or `/apps` path
+- missing connectors trigger a clear consent or `jasper apps` path
+- `jasper apps` shows which requests are blocked and which connector Jasper is waiting on
 - once consent is granted, the same prompt resolves through Jasper without re-teaching the infrastructure

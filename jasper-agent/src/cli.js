@@ -8,6 +8,8 @@ import { createReflectionStore } from "../../jasper-memory/src/reflections.js";
 import { generateToolFromTemplate } from "../../jasper-tools/src/generator.js";
 import { listGeneratorTemplates } from "../../jasper-tools/src/generator.js";
 import { createToolRegistry } from "../../jasper-tools/src/registry.js";
+import { getJasperAppStatus } from "./apps.js";
+import { mergeDoctorStatus } from "./apps.js";
 import { createToolAcquisitionStore } from "./broker/acquisition-store.js";
 import { createCapabilityBroker } from "./broker/index.js";
 import { createToolMaintenanceWorker } from "./broker/tool-maintenance.js";
@@ -19,6 +21,7 @@ function printUsage() {
   node jasper-agent/src/cli.js setup [--jasper-home PATH] [--skip-qdrant] [--skip-auth] [--device-auth] [--qdrant-url URL] [--qdrant-container-name NAME] [--qdrant-image IMAGE]
   node jasper-agent/src/cli.js setup status [--jasper-home PATH]
   node jasper-agent/src/cli.js doctor [--jasper-home PATH]
+  node jasper-agent/src/cli.js apps [--jasper-home PATH]
   node jasper-agent/src/cli.js identity [--identity PATH]
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
@@ -251,12 +254,21 @@ async function main() {
   }
 
   if (command === "doctor") {
+    const setupStatus = await getJasperSetupStatus({
+      jasperHome: options.jasperHome,
+      validateAuth: true,
+    });
     printJson(
-      await getJasperSetupStatus({
-        jasperHome: options.jasperHome,
-        validateAuth: true,
-      }),
+      mergeDoctorStatus(
+        setupStatus,
+        getJasperAppStatus({ jasperHome: options.jasperHome }),
+      ),
     );
+    return;
+  }
+
+  if (command === "apps") {
+    printJson(getJasperAppStatus({ jasperHome: options.jasperHome }));
     return;
   }
 
