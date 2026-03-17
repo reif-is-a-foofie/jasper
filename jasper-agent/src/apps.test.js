@@ -6,6 +6,7 @@ import path from "node:path";
 import { createCapabilityBroker } from "./broker/index.js";
 import { getJasperAppStatus } from "./apps.js";
 import { mergeDoctorStatus } from "./apps.js";
+import { createAppsStatusTool } from "../../jasper-tools/src/tools/apps-status.js";
 
 function createJasperHome() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "jasper-apps-"));
@@ -90,4 +91,18 @@ test("doctor status includes app remediation when connectors are pending", () =>
   assert.equal(merged.apps.connectors.length, 1);
   assert.match(merged.warnings[0], /connector request/i);
   assert.match(merged.nextSteps[0], /jasper apps/i);
+});
+
+test("apps-status tool exposes pending connector requests", async () => {
+  const jasperHome = createJasperHome();
+  const broker = createCapabilityBroker({ jasperHome });
+  broker.acquireRequest("check my calendar tomorrow", {
+    source: { kind: "test" },
+  });
+
+  const tool = createAppsStatusTool({ jasperHome });
+  const output = await tool.run();
+
+  assert.equal(output.status, "needs_attention");
+  assert.equal(output.connectors[0].id, "calendar");
 });

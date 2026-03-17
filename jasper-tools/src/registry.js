@@ -2,6 +2,7 @@ import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
 import { materializeGeneratedTool } from "./generated-tool.js";
 import { loadGeneratedRegistry } from "./generator.js";
+import { createAppsStatusTool } from "./tools/apps-status.js";
 import { createIdentitySummaryTool } from "./tools/identity-summary.js";
 import { createRecentMemoryTool } from "./tools/recent-memory.js";
 import { createSemanticMemorySearchTool } from "./tools/semantic-memory-search.js";
@@ -9,6 +10,7 @@ import { createWebResearchTool } from "./tools/web-research.js";
 
 export function createToolContext(options = {}) {
   return {
+    jasperHome: options.jasperHome,
     identity: loadIdentityConfig({ identityPath: options.identityPath }),
     memory: createEventStore({
       root: options.memoryRoot,
@@ -34,6 +36,7 @@ export function createToolRegistry(options = {}) {
     ),
   );
   const tools = [
+    createAppsStatusTool(context),
     createIdentitySummaryTool(context),
     createRecentMemoryTool(context),
     createSemanticMemorySearchTool(context),
