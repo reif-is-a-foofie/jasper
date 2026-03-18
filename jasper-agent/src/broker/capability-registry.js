@@ -157,6 +157,7 @@ const CAPABILITIES = [
         providerId: "mcp",
         serverName: "calendar",
         packageId: "jasper/calendar",
+        toolId: "calendar-read",
         autoProvision: true,
         trust: "curated",
       },

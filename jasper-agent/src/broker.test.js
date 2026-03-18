@@ -142,8 +142,28 @@ test("active connectors prefer their bound executable provider lane", () => {
 
   assert.equal(plan.internalPlan.primaryProvider.providerId, "mcp");
   assert.equal(plan.internalPlan.primaryProvider.packageId, "jasper/calendar");
+  assert.equal(plan.internalPlan.primaryProvider.toolId, "calendar-read");
   assert.equal(plan.internalPlan.primaryProvider.status, "available");
   assert.equal(plan.internalPlan.acquisition.strategy, "use_existing");
+});
+
+test("acquireRequest returns the bound calendar tool for active connectors", () => {
+  const jasperHome = createJasperHome();
+  approveConnector({
+    jasperHome,
+    connectorId: "calendar",
+  });
+  activateConnector({
+    jasperHome,
+    connectorId: "calendar",
+  });
+  const broker = createCapabilityBroker({ jasperHome });
+
+  const result = broker.acquireRequest("check my calendar for tomorrow morning");
+
+  assert.equal(result.outcome.status, "ready");
+  assert.equal(result.outcome.provider.providerId, "mcp");
+  assert.equal(result.outcome.tool.id, "calendar-read");
 });
 
 test("acquireRequest persists quarantine work for external candidates", () => {

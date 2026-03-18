@@ -23,6 +23,7 @@ Delivered here:
 - persisted connector approval state through `jasper apps approve` and `jasper apps revoke`
 - explicit connector runtime state through `jasper apps activate` and `jasper apps deactivate`
 - activation now binds a connector to a concrete preferred provider lane for later broker routing
+- Jasper now has a first read-only `calendar-read` tool behind the activated `jasper/calendar` lane
 - connector state remembered in Jasper memory and surfaced in user-facing status
 - strong remediation path through `jasper apps` when required access is still missing
 

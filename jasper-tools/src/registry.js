@@ -3,6 +3,7 @@ import { createEventStore } from "../../jasper-memory/src/event-store.js";
 import { materializeGeneratedTool } from "./generated-tool.js";
 import { loadGeneratedRegistry } from "./generator.js";
 import { createAppsStatusTool } from "./tools/apps-status.js";
+import { createCalendarReadTool } from "./tools/calendar-read.js";
 import { createIdentitySummaryTool } from "./tools/identity-summary.js";
 import { createRecentMemoryTool } from "./tools/recent-memory.js";
 import { createSemanticMemorySearchTool } from "./tools/semantic-memory-search.js";
@@ -17,6 +18,7 @@ export function createToolContext(options = {}) {
       jasperHome: options.jasperHome,
     }),
     webResearchRunner: options.webResearchRunner,
+    calendarReadRunner: options.calendarReadRunner,
     codexExecutablePath: options.codexExecutablePath,
     codexWorkingDirectory: options.codexWorkingDirectory,
   };
@@ -37,6 +39,7 @@ export function createToolRegistry(options = {}) {
   );
   const tools = [
     createAppsStatusTool(context),
+    createCalendarReadTool(context),
     createIdentitySummaryTool(context),
     createRecentMemoryTool(context),
     createSemanticMemorySearchTool(context),
