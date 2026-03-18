@@ -185,6 +185,7 @@ const CAPABILITIES = [
         providerId: "mcp",
         serverName: "email",
         packageId: "jasper/email",
+        toolId: "email-read",
         autoProvision: true,
         trust: "curated",
       },

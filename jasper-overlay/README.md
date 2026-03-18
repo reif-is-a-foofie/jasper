@@ -24,7 +24,7 @@ Current launcher behavior:
 - `node jasper-overlay/bin/jasper.js memory materialize` pushes raw-memory embeddings into the local semantic index
 - `node jasper-overlay/bin/jasper.js dream reflect` generates a Jasper reflection record
 - `node jasper-overlay/bin/jasper.js tools list` lists registered Jasper tools
-- built-in tool coverage now includes first-party web research through Codex web search and a read-only macOS calendar reader
+- built-in tool coverage now includes first-party web research through Codex web search plus read-only `calendar-read` and `email-read` bridges that only appear after the respective connectors are activated
 - `node jasper-overlay/bin/jasper.js tools scout "query"` inspects the full acquisition plan for a request
 - `node jasper-overlay/bin/jasper.js tools needs "query"` identifies the capability Jasper thinks it needs
 - `node jasper-overlay/bin/jasper.js tools search "query"` shows candidate search/import lanes

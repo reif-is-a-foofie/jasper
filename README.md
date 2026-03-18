@@ -71,6 +71,7 @@ jasper
 - `jasper apps` reports connector and app requests Jasper is currently blocked on, and `jasper apps approve CONNECTOR_ID`, `jasper apps activate CONNECTOR_ID`, `jasper apps deactivate CONNECTOR_ID`, and `jasper apps revoke CONNECTOR_ID` now model consent and runtime readiness separately.
 - Connector activation now also records Jasper's preferred provider lane, so later broker decisions can resolve to concrete paths like `jasper/calendar` instead of a generic connector placeholder.
 - Jasper now ships a first read-only calendar tool, `calendar-read`, which is exposed through the activated `jasper/calendar` provider lane.
+- Jasper also exposes a read-only `email-read` tool that becomes available once the `jasper/email` connector is activated, keeping sensitive inbox access behind consent.
 - Jasper writes raw memory into local JSONL logs first, then `jasper memory materialize` can push that history into the local semantic index.
 - The near-term semantic-memory plan is `fastembed` with bundled local model and runtime assets plus local-first storage, not a hosted dependency.
 - `jasper setup` now validates existing OpenAI/Codex auth when possible; guided connector setup is still deferred for now.

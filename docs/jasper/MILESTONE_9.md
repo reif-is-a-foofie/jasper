@@ -24,6 +24,7 @@ Delivered here:
 - explicit connector runtime state through `jasper apps activate` and `jasper apps deactivate`
 - activation now binds a connector to a concrete preferred provider lane for later broker routing
 - Jasper now has a first read-only `calendar-read` tool behind the activated `jasper/calendar` lane
+- Jasper now has read-only `calendar-read` and `email-read` tools that only appear once their respective connectors are activated
 - connector state remembered in Jasper memory and surfaced in user-facing status
 - strong remediation path through `jasper apps` when required access is still missing
 

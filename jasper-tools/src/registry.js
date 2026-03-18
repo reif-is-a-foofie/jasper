@@ -9,6 +9,7 @@ import { createIdentitySummaryTool } from "./tools/identity-summary.js";
 import { createRecentMemoryTool } from "./tools/recent-memory.js";
 import { createSemanticMemorySearchTool } from "./tools/semantic-memory-search.js";
 import { createWebResearchTool } from "./tools/web-research.js";
+import { createEmailReadTool } from "./tools/email-read.js";
 
 export function createToolContext(options = {}) {
   return {
@@ -20,6 +21,7 @@ export function createToolContext(options = {}) {
     }),
     webResearchRunner: options.webResearchRunner,
     calendarReadRunner: options.calendarReadRunner,
+    emailReadRunner: options.emailReadRunner,
     codexExecutablePath: options.codexExecutablePath,
     codexWorkingDirectory: options.codexWorkingDirectory,
   };
@@ -48,15 +50,20 @@ export function createToolRegistry(options = {}) {
   );
   const tools = [
     createAppsStatusTool(context),
+  ];
+  if (activeConnectors.has("calendar")) {
+    tools.push(createCalendarReadTool(context));
+  }
+  if (activeConnectors.has("email")) {
+    tools.push(createEmailReadTool(context));
+  }
+  tools.push(
     createIdentitySummaryTool(context),
     createRecentMemoryTool(context),
     createSemanticMemorySearchTool(context),
     createWebResearchTool(context),
     ...generatedTools,
-  ];
-  if (activeConnectors.has("calendar")) {
-    tools.splice(1, 0, createCalendarReadTool(context));
-  }
+  );
 
   return {
     listTools() {

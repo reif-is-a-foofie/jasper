@@ -120,6 +120,23 @@ test("lists built-in Jasper tools when no generated tools exist", () => {
   ]);
 });
 
+test("lists email-read only when the email connector is active", () => {
+  const baseOptions = {
+    identityPath: createIdentityPath(),
+    memoryRoot: fs.mkdtempSync(path.join(os.tmpdir(), "jasper-tools-memory-")),
+    toolsRoot: createToolsRoot(),
+  };
+
+  const inactive = createToolRegistry(baseOptions);
+  const active = createToolRegistry({
+    ...baseOptions,
+    activeConnectors: ["email"],
+  });
+
+  assert.equal(inactive.getTool("email-read"), null);
+  assert.equal(active.getTool("email-read")?.id, "email-read");
+});
+
 test("lists calendar-read only when the calendar connector is active", () => {
   const baseOptions = {
     identityPath: createIdentityPath(),
