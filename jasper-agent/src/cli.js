@@ -18,6 +18,7 @@ import { createToolAcquisitionStore } from "./broker/acquisition-store.js";
 import { createCapabilityBroker } from "./broker/index.js";
 import { createToolMaintenanceWorker } from "./broker/tool-maintenance.js";
 import { createJasperRuntime } from "./runtime.js";
+import { createDigestReporter } from "./digest.js";
 
 function printUsage() {
   process.stdout.write(`Usage:
@@ -59,6 +60,7 @@ function printUsage() {
   node jasper-agent/src/cli.js broker agents
   node jasper-agent/src/cli.js broker capabilities
   node jasper-agent/src/cli.js broker inspect QUERY [--identity PATH] [--memory-root PATH] [--tools-root PATH]
+  node jasper-agent/src/cli.js digest [STAGE] [--lookback-hours N] [--event-limit N] [--jasper-home PATH] [--memory-root PATH]
 `);
 }
 
@@ -117,6 +119,16 @@ function parseArgs(argv) {
     }
     if (arg === "--query") {
       options.query = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--lookback-hours") {
+      options.lookbackHours = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--event-limit") {
+      options.eventLimit = Number(args[index + 1]);
       index += 1;
       continue;
     }
@@ -717,6 +729,28 @@ async function main() {
     }
 
     printUsage();
+    return;
+  }
+
+  if (command === "digest") {
+    let stage;
+    let digestRest = rest;
+    const candidate = rest[0];
+    if (candidate && !candidate.startsWith("--")) {
+      stage = candidate;
+      digestRest = rest.slice(1);
+    }
+    const digestOptions = parseArgs(digestRest);
+    const reporter = createDigestReporter({
+      memoryRoot: digestOptions.memoryRoot || options.memoryRoot,
+      jasperHome: digestOptions.jasperHome || options.jasperHome,
+    });
+    const digest = await reporter.generateDigest({
+      stage,
+      lookbackHours: digestOptions.lookbackHours,
+      eventLimit: digestOptions.eventLimit,
+    });
+    printJson(digest);
     return;
   }
 

@@ -3,6 +3,7 @@ import { loadIdentityConfig } from "../../jasper-core/src/identity.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
 import { createToolMaintenanceWorker } from "./broker/tool-maintenance.js";
 import { createEnvironmentListeners } from "./listeners/index.js";
+import { createDigestReporter } from "./digest.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -59,6 +60,26 @@ export class JasperRuntime {
     this.running = false;
     this.sessionId = options.sessionId || `runtime_${randomUUID()}`;
     this.tickCount = 0;
+    this.digestStages =
+      Array.isArray(options.digestStages) && options.digestStages.length > 0
+        ? options.digestStages
+        : ["morning", "evening"];
+    this.digestStageIndex = 0;
+    this.digestIntervalMs = Math.max(
+      1000,
+      Number(options.digestIntervalMs ?? 6 * 60 * 60 * 1000),
+    );
+    this.digestLookbackHours = Math.max(
+      0.25,
+      Number(options.digestLookbackHours ?? 6),
+    );
+    this.digestReporter =
+      options.digestReporter ||
+      createDigestReporter({
+        memory: this.memory,
+        jasperHome: options.jasperHome,
+      });
+    this.lastDigestAt = 0;
   }
 
   log(event, details = {}) {
@@ -276,6 +297,40 @@ export class JasperRuntime {
           tags: ["runtime", "heartbeat"],
         },
       );
+
+      const nowMs = Date.now();
+      if (
+        this.digestStages.length > 0 &&
+        nowMs - this.lastDigestAt >= this.digestIntervalMs
+      ) {
+        const stage = this.digestStages[this.digestStageIndex];
+        const digest = await this.digestReporter.generateDigest({
+          stage,
+          lookbackHours: this.digestLookbackHours,
+        });
+        this.record(
+          "digest.generated",
+          {
+            stage,
+            timestamp: digest.timestamp,
+            summary: digest.summaryText,
+            connectorsNeedAttention: digest.connectorsNeedAttention.map(
+              (connector) => ({
+                id: connector.id,
+                status: connector.status,
+              }),
+            ),
+            warnings: digest.warnings,
+            nextSteps: digest.nextSteps,
+          },
+          {
+            tags: ["digest", "monitoring"],
+          },
+        );
+        this.lastDigestAt = nowMs;
+        this.digestStageIndex =
+          (this.digestStageIndex + 1) % this.digestStages.length;
+      }
 
       if (this.maxTicks !== null && this.tickCount >= this.maxTicks) {
         this.stop("max_ticks_reached");

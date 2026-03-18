@@ -59,157 +59,62 @@ Planning, capability routing, tools, workflows, delegation, and operational acti
 
 Permissions, approvals, trust boundaries, self-evaluation, self-healing, self-building, self-upgrade, and long-run reliability.
 
-## Milestone Ladder
+## Milestone Ladder by Region
 
-1. **Milestone 1: System Skeleton**  
-   Region: Self Model.  
-   Status: complete.  
-   Outcome: Jasper-owned identity, launcher, and runtime scaffold.
+### Region 1: Self Model
 
-2. **Milestone 2: Persistent Memory**  
-   Region: Memory & World Model.  
-   Status: complete.  
-   Outcome: raw events, local embeddings, and memory retrieval.
+Milestones in this region reinforce identity, values, operator alignment, and boot health so Jasper can orient quickly before it acts.
 
-3. **Milestone 3: Tool Framework**  
-   Region: Executive & Action.  
-   Status: complete.  
-   Outcome: Jasper-owned tool registry and basic built-in tools.
+1. **Milestone 1: System Skeleton** — Status: complete. Outcome: Jasper owns its identity, launcher, and runtime scaffold.
+8. **Milestone 8: Guided Onboarding And Authentication** — Status: complete. Outcome: new operators install Jasper, authenticate, and reach a healthy first-run state without manual spelunking.
+14. **Milestone 14: Household Operating System** — Status: long-range. Outcome: Jasper becomes the default command center for planning, protection, execution, and review.
 
-4. **Milestone 4: Environment Awareness**  
-   Region: Perception & Attention.  
-   Status: complete.  
-   Outcome: listener-driven observations that feed memory.
+### Region 2: Perception & Attention
 
-5. **Milestone 5: Dream State**  
-   Region: Memory & World Model.  
-   Status: complete.  
-   Outcome: reflections and clustered synthesis from recent activity.
+This region builds the connectors, calendar tool, email interfaces, gating, and monitoring that let Jasper sense household signals under explicit consent.
 
-6. **Milestone 6: Tool Generation**  
-   Region: Regulation & Growth.  
-   Status: complete.  
-   Outcome: template-based generated tools and registry updates.
+4. **Milestone 4: Environment Awareness** — Status: complete. Outcome: listener-driven observations funnel into memory.
+9. **Milestone 9: Consent-Driven Connector Operations** — Status: active. Outcome: connector discovery, consent steps, and gating based on provider lanes let calendar and mail tools appear only after approval, so Jasper can answer prompts like `check tomorrow's calendar` or `summarize important unread email` without leaking credentials.
+10. **Milestone 10: Background Monitoring And Daily Digest** — Status: planned. Outcome: Jasper uses activated connectors to run continuous monitors, digest important changes, summarize email and calendar updates, and surface alerts through the preferred channel.
+12. **Milestone 12: Guardian Detection And Escalation** — Status: planned. Outcome: risk scoring, anomaly detection, and escalation paths layer on top of the same perception flows.
+20. **Milestone 20: Mobile Presence And Interrupt Intelligence** — Status: planned. Outcome: ambient capture, push routing, and smarter interruption decisions continue the perception story outside the desk.
 
-7. **Milestone 7: Capability Brokerage And Tool Acquisition**  
-   Region: Executive & Action.  
-   Status: active foundation.  
-   Outcome: outcome-oriented request routing, tool planning, after-turn intake, and self-extension queueing.
+### Region 3: Memory & World Model
 
-8. **Milestone 8: Guided Onboarding And Authentication**  
-   Region: Self Model.  
-   Status: complete.  
-   Outcome: a new operator can install Jasper, authenticate, and reach a healthy first-run state without manual spelunking.
+This region captures working, episodic, semantic, and strategic memory so Jasper knows what has happened, who matters, and what will likely happen next.
 
-9. **Milestone 9: Consent-Driven Connector Operations**  
-   Region: Perception & Attention.  
-   Status: active.  
-   Outcome: calendar, mail, and related household connectors become natural Jasper capabilities with explicit consent boundaries.
+2. **Milestone 2: Persistent Memory** — Status: complete. Outcome: raw events, local embeddings, and retrieval.
+5. **Milestone 5: Dream State** — Status: complete. Outcome: reflections and clustered synthesis from recent activity.
+13. **Milestone 13: Strategic Memory And Commitments** — Status: planned. Outcome: long-horizon goals, promises, constraints, and relationships stay coherent across time.
+18. **Milestone 18: Knowledge Vault And Document Grounding** — Status: planned. Outcome: Jasper becomes grounded in the operator's real documents, notes, and records instead of relying mostly on conversation.
+19. **Milestone 19: Multi-Person Household Coordination** — Status: planned. Outcome: Jasper can coordinate plans, responsibilities, and notifications across the household instead of just a single operator thread.
+28. **Milestone 28: Personal Digital Twin And Simulation** — Status: planned. Outcome: Jasper can model commitments, resources, and constraints well enough to simulate options before action.
 
-10. **Milestone 10: Background Monitoring And Daily Digest**  
-    Region: Perception & Attention.  
-    Status: planned.  
-    Outcome: Jasper watches important streams continuously and produces proactive summaries.
+### Region 4: Executive & Action
 
-11. **Milestone 11: Workflow Automation And Delegation**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: repeated work becomes reusable Jasper workflows with approvals and checkpoints.
+This region turns perception and memory into plans, tool calls, workflows, and delegation that actually move work forward.
 
-12. **Milestone 12: Guardian Detection And Escalation**  
-    Region: Perception & Attention.  
-    Status: planned.  
-    Outcome: Jasper becomes a real household guardian with anomaly detection, risk scoring, and escalation paths.
+3. **Milestone 3: Tool Framework** — Status: complete. Outcome: Jasper-owned tool registry and built-in tools.
+7. **Milestone 7: Capability Brokerage And Tool Acquisition** — Status: active foundation. Outcome: outcome-oriented request routing, tool planning, after-turn intake, and self-extension queueing.
+11. **Milestone 11: Workflow Automation And Delegation** — Status: planned. Outcome: repeated work becomes reusable Jasper workflows with approvals and checkpoints.
+15. **Milestone 15: Computer-Use Delegation** — Status: planned. Outcome: Jasper can drive browser and desktop tasks under explicit guardrails instead of just discussing them.
+16. **Milestone 16: Communications Chief Of Staff** — Status: planned. Outcome: Jasper drafts, triages, follows up, and manages communication loops, including email and meetings.
+17. **Milestone 17: Finance And Household Operations** — Status: planned. Outcome: Jasper tracks bills, subscriptions, purchases, and recurring obligations with approval-aware execution.
+25. **Milestone 25: Strategic Planning Engine** — Status: planned. Outcome: Jasper can drive weekly reviews, quarterly planning, and long-horizon prioritization instead of just reacting.
+26. **Milestone 26: External Negotiation And Service Management** — Status: planned. Outcome: Jasper can handle vendor follow-ups, service coordination, and structured negotiations with operator approval.
+27. **Milestone 27: Multi-Agent Project Execution** — Status: planned. Outcome: Jasper can spin up specialized agent workers, supervise them, and merge their work into coherent progress.
 
-13. **Milestone 13: Strategic Memory And Commitments**  
-    Region: Memory & World Model.  
-    Status: planned.  
-    Outcome: long-horizon goals, promises, constraints, and relationships stay coherent across time.
+### Region 5: Regulation & Growth
 
-14. **Milestone 14: Household Operating System**  
-    Region: Self Model.  
-    Status: long-range.  
-    Outcome: Jasper becomes the default command center for planning, protection, execution, and review.
+This region secures permissions, trust, self-evaluation, and long-run reliability so Jasper can heal, upgrade, and run unattended.
 
-15. **Milestone 15: Computer-Use Delegation**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper can drive browser and desktop tasks under explicit guardrails instead of only talking about them.
-
-16. **Milestone 16: Communications Chief Of Staff**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper drafts, triages, follows up, and manages communication loops across email, messages, and meetings.
-
-17. **Milestone 17: Finance And Household Operations**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper tracks bills, subscriptions, purchases, and recurring obligations with approval-aware execution.
-
-18. **Milestone 18: Knowledge Vault And Document Grounding**  
-    Region: Memory & World Model.  
-    Status: planned.  
-    Outcome: Jasper becomes grounded in the operator's real documents, notes, and records instead of mostly conversational memory.
-
-19. **Milestone 19: Multi-Person Household Coordination**  
-    Region: Memory & World Model.  
-    Status: planned.  
-    Outcome: Jasper can coordinate plans, responsibilities, and notifications across the whole household rather than a single operator thread.
-
-20. **Milestone 20: Mobile Presence And Interrupt Intelligence**  
-    Region: Perception & Attention.  
-    Status: planned.  
-    Outcome: Jasper becomes useful away from the desk through mobile capture, push routing, and smarter interruption decisions.
-
-21. **Milestone 21: Trust, Permissions, And Secret Stewardship**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper gains a serious policy and secret-management layer so broader autonomy does not erode trust.
-
-22. **Milestone 22: App Platform And Skill Marketplace**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper becomes extensible by third parties through packaged skills, tools, and connector integrations.
-
-23. **Milestone 23: Self-Evaluation And Autocorrection**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper measures its own reliability, notices regressions, and proposes or applies corrections before drift compounds.
-
-24. **Milestone 24: Local Appliance And Always-On Reliability**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper runs like a dependable local product with managed services, restart resilience, and low-friction updates.
-
-25. **Milestone 25: Strategic Planning Engine**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper can drive weekly reviews, quarterly planning, and long-horizon prioritization instead of only reactive execution.
-
-26. **Milestone 26: External Negotiation And Service Management**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper can handle vendor follow-ups, service coordination, and structured external negotiations with operator approval.
-
-27. **Milestone 27: Multi-Agent Project Execution**  
-    Region: Executive & Action.  
-    Status: planned.  
-    Outcome: Jasper can spin up specialized agent workers, supervise them, and merge their work into coherent project progress.
-
-28. **Milestone 28: Personal Digital Twin And Simulation**  
-    Region: Memory & World Model.  
-    Status: planned.  
-    Outcome: Jasper can model the operator's commitments, resources, and constraints well enough to simulate options before action.
-
-29. **Milestone 29: Federated Household And Team Intelligence**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper can coordinate across multiple households, operators, or small teams without collapsing trust boundaries.
-
-30. **Milestone 30: Self-Sustaining Personal Intelligence System**  
-    Region: Regulation & Growth.  
-    Status: planned.  
-    Outcome: Jasper becomes a continuously improving, always-available intelligence layer that can preserve and amplify operator capability over years.
+6. **Milestone 6: Tool Generation** — Status: complete. Outcome: template-based generated tools and registry updates.
+21. **Milestone 21: Trust, Permissions, And Secret Stewardship** — Status: planned. Outcome: a policy and secret-management layer safeguards broad autonomy.
+22. **Milestone 22: App Platform And Skill Marketplace** — Status: planned. Outcome: Jasper becomes extensible by third parties through packaged skills, tools, and connectors.
+23. **Milestone 23: Self-Evaluation And Autocorrection** — Status: planned. Outcome: Jasper measures its reliability, notices regressions, and proposes or applies corrections before drift compounds.
+24. **Milestone 24: Local Appliance And Always-On Reliability** — Status: planned. Outcome: Jasper runs like a dependable local product with managed services, restart resilience, and low-friction updates.
+29. **Milestone 29: Federated Household And Team Intelligence** — Status: planned. Outcome: Jasper coordinates across households, operators, or small teams without flattening trust boundaries.
+30. **Milestone 30: Self-Sustaining Personal Intelligence System** — Status: planned. Outcome: Jasper becomes a continuously improving, always-available intelligence layer that preserves and amplifies operator capability.
 
 ## Operating Rule For Unattended Development
 
