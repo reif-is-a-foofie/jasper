@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { approveConnector } from "./apps.js";
 import { createCapabilityBroker } from "./broker/index.js";
 import { getJasperAppStatus } from "./apps.js";
 import { mergeDoctorStatus } from "./apps.js";
+import { revokeConnector } from "./apps.js";
 import { createAppsStatusTool } from "../../jasper-tools/src/tools/apps-status.js";
 
 function createJasperHome() {
@@ -65,6 +67,57 @@ test("apps status summarizes pending connector requests", () => {
     ],
   );
   assert.match(status.nextSteps[0], /jasper apps/i);
+});
+
+test("approved connectors are persisted and routed through the broker", () => {
+  const jasperHome = createJasperHome();
+
+  approveConnector({
+    jasperHome,
+    connectorId: "calendar",
+  });
+
+  const status = getJasperAppStatus({ jasperHome });
+  const broker = createCapabilityBroker({ jasperHome });
+  const plan = broker.inspectRequest("check my calendar tomorrow");
+
+  assert.equal(status.status, "ready");
+  assert.equal(status.connectors[0].id, "calendar");
+  assert.equal(status.connectors[0].status, "approved");
+  assert.equal(status.connectors[0].consentStatus, "approved");
+  assert.equal(plan.internalPlan.primaryProvider.status, "available");
+  assert.match(
+    plan.internalPlan.primaryProvider.reason,
+    /approved for Jasper use/i,
+  );
+});
+
+test("revoking a connector returns matching requests to consent-required", () => {
+  const jasperHome = createJasperHome();
+  const broker = createCapabilityBroker({ jasperHome });
+  broker.acquireRequest("check my calendar tomorrow", {
+    source: { kind: "test" },
+  });
+
+  approveConnector({
+    jasperHome,
+    connectorId: "calendar",
+  });
+  revokeConnector({
+    jasperHome,
+    connectorId: "calendar",
+  });
+
+  const status = getJasperAppStatus({ jasperHome });
+  const updatedPlan = createCapabilityBroker({ jasperHome }).inspectRequest(
+    "check my calendar tomorrow",
+  );
+
+  assert.equal(status.status, "needs_attention");
+  assert.equal(status.connectors[0].id, "calendar");
+  assert.equal(status.connectors[0].status, "consent_required");
+  assert.equal(status.connectors[0].consentStatus, "revoked");
+  assert.equal(updatedPlan.internalPlan.primaryProvider.status, "consent_required");
 });
 
 test("doctor status includes app remediation when connectors are pending", () => {

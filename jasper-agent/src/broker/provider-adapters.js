@@ -58,7 +58,7 @@ function resolveConnectorCandidate(candidate, context) {
       ...candidate,
       status: "available",
       action: "use",
-      reason: `Connector "${connectorId}" is approved and ready.`,
+      reason: `Connector "${connectorId}" is approved for Jasper use.`,
     };
   }
 

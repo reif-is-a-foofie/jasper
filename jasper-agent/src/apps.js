@@ -1,3 +1,5 @@
+import { createEventStore } from "../../jasper-memory/src/event-store.js";
+import { createConnectorStore } from "./connector-store.js";
 import { createToolAcquisitionStore } from "./broker/acquisition-store.js";
 
 function normalizeText(value) {
@@ -100,14 +102,57 @@ function summarizeConnectors(records) {
     .sort(sortByMostRecent);
 }
 
+function mergeConnectorStates(records, connectorStates) {
+  const summaries = new Map(
+    summarizeConnectors(records).map((connector) => [connector.id, connector]),
+  );
+
+  for (const state of connectorStates) {
+    const existing = summaries.get(state.id);
+    summaries.set(state.id, {
+      id: state.id,
+      label: existing?.label || connectorLabel(state.id),
+      status:
+        state.status === "approved"
+          ? "approved"
+          : existing?.status || "tracked",
+      consentStatus: state.status,
+      approvedAt: state.approvedAt || null,
+      revokedAt: state.revokedAt || null,
+      latestRequestAt: existing?.latestRequestAt || null,
+      requestCount: existing?.requestCount || 0,
+      requestedCapabilities: existing?.requestedCapabilities || [],
+      recentRequests: existing?.recentRequests || [],
+      terminalCommand: "jasper apps",
+    });
+  }
+
+  return [...summaries.values()]
+    .map((connector) => ({
+      ...connector,
+      consentStatus:
+        connector.consentStatus ||
+        (connector.status === "approved" ? "approved" : "not_approved"),
+      approvedAt: connector.approvedAt || null,
+      revokedAt: connector.revokedAt || null,
+    }))
+    .sort(sortByMostRecent);
+}
+
 export function getJasperAppStatus(options = {}) {
   const acquisitionStore =
     options.acquisitionStore ||
     createToolAcquisitionStore({ jasperHome: options.jasperHome });
+  const connectorStore =
+    options.connectorStore ||
+    createConnectorStore({ jasperHome: options.jasperHome });
   const records = acquisitionStore.listAcquisitions({
     limit: Number.MAX_SAFE_INTEGER,
   });
-  const connectors = summarizeConnectors(records);
+  const connectors = mergeConnectorStates(
+    records,
+    connectorStore.listConnectorStates(),
+  );
   const pendingConnectors = connectors.filter(
     (connector) => connector.status === "consent_required",
   );
@@ -133,6 +178,84 @@ export function getJasperAppStatus(options = {}) {
     connectors,
     warnings,
     nextSteps,
+  };
+}
+
+export function approveConnector(options = {}) {
+  const connectorStore =
+    options.connectorStore ||
+    createConnectorStore({ jasperHome: options.jasperHome });
+  const connectorId = normalizeText(options.connectorId);
+  if (!connectorId) {
+    throw new Error("Connector approval requires a connector id");
+  }
+
+  const state = connectorStore.approveConnector(connectorId, options.note);
+  const memory =
+    options.memory ||
+    createEventStore({
+      root: options.memoryRoot,
+      jasperHome: options.jasperHome,
+      source: "jasper-apps",
+    });
+  const event = memory.appendEvent({
+    type: "connector.approved",
+    source: "jasper-apps",
+    tags: ["connector", "consent", "apps"],
+    payload: {
+      connectorId,
+      approvedAt: state?.approvedAt || null,
+      note: options.note ? String(options.note) : null,
+    },
+  });
+
+  return {
+    connector: state,
+    event,
+    apps: getJasperAppStatus({
+      jasperHome: options.jasperHome,
+      acquisitionStore: options.acquisitionStore,
+      connectorStore,
+    }),
+  };
+}
+
+export function revokeConnector(options = {}) {
+  const connectorStore =
+    options.connectorStore ||
+    createConnectorStore({ jasperHome: options.jasperHome });
+  const connectorId = normalizeText(options.connectorId);
+  if (!connectorId) {
+    throw new Error("Connector revocation requires a connector id");
+  }
+
+  const state = connectorStore.revokeConnector(connectorId, options.note);
+  const memory =
+    options.memory ||
+    createEventStore({
+      root: options.memoryRoot,
+      jasperHome: options.jasperHome,
+      source: "jasper-apps",
+    });
+  const event = memory.appendEvent({
+    type: "connector.revoked",
+    source: "jasper-apps",
+    tags: ["connector", "consent", "apps"],
+    payload: {
+      connectorId,
+      revokedAt: state?.revokedAt || null,
+      note: options.note ? String(options.note) : null,
+    },
+  });
+
+  return {
+    connector: state,
+    event,
+    apps: getJasperAppStatus({
+      jasperHome: options.jasperHome,
+      acquisitionStore: options.acquisitionStore,
+      connectorStore,
+    }),
   };
 }
 

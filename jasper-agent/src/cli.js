@@ -8,8 +8,10 @@ import { createReflectionStore } from "../../jasper-memory/src/reflections.js";
 import { generateToolFromTemplate } from "../../jasper-tools/src/generator.js";
 import { listGeneratorTemplates } from "../../jasper-tools/src/generator.js";
 import { createToolRegistry } from "../../jasper-tools/src/registry.js";
+import { approveConnector } from "./apps.js";
 import { getJasperAppStatus } from "./apps.js";
 import { mergeDoctorStatus } from "./apps.js";
+import { revokeConnector } from "./apps.js";
 import { createToolAcquisitionStore } from "./broker/acquisition-store.js";
 import { createCapabilityBroker } from "./broker/index.js";
 import { createToolMaintenanceWorker } from "./broker/tool-maintenance.js";
@@ -22,6 +24,8 @@ function printUsage() {
   node jasper-agent/src/cli.js setup status [--jasper-home PATH]
   node jasper-agent/src/cli.js doctor [--jasper-home PATH]
   node jasper-agent/src/cli.js apps [--jasper-home PATH]
+  node jasper-agent/src/cli.js apps approve CONNECTOR_ID [--description TEXT] [--jasper-home PATH]
+  node jasper-agent/src/cli.js apps revoke CONNECTOR_ID [--description TEXT] [--jasper-home PATH]
   node jasper-agent/src/cli.js identity [--identity PATH]
   node jasper-agent/src/cli.js memory recent [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
   node jasper-agent/src/cli.js memory search QUERY [--memory-root PATH] [--limit N] [--type TYPE] [--source SOURCE]
@@ -268,6 +272,41 @@ async function main() {
   }
 
   if (command === "apps") {
+    const [appsCommand, ...appsArgs] = rest;
+    const appsOptions = parseArgs(appsArgs);
+
+    if (appsCommand === "approve") {
+      const [connectorId] = appsOptions.positionals;
+      if (!connectorId) {
+        throw new Error("Apps approve requires a CONNECTOR_ID");
+      }
+      printJson(
+        approveConnector({
+          connectorId,
+          note: appsOptions.description,
+          jasperHome: appsOptions.jasperHome,
+          memoryRoot: appsOptions.memoryRoot,
+        }),
+      );
+      return;
+    }
+
+    if (appsCommand === "revoke") {
+      const [connectorId] = appsOptions.positionals;
+      if (!connectorId) {
+        throw new Error("Apps revoke requires a CONNECTOR_ID");
+      }
+      printJson(
+        revokeConnector({
+          connectorId,
+          note: appsOptions.description,
+          jasperHome: appsOptions.jasperHome,
+          memoryRoot: appsOptions.memoryRoot,
+        }),
+      );
+      return;
+    }
+
     printJson(getJasperAppStatus({ jasperHome: options.jasperHome }));
     return;
   }

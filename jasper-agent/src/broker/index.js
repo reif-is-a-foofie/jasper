@@ -1,5 +1,6 @@
 import { createToolRegistry } from "../../../jasper-tools/src/registry.js";
 import { generateToolFromTemplate } from "../../../jasper-tools/src/generator.js";
+import { createConnectorStore } from "../connector-store.js";
 import { createToolAcquisitionStore } from "./acquisition-store.js";
 import { createCapabilityRegistry } from "./capability-registry.js";
 import { listInternalAgents } from "./internal-agents.js";
@@ -103,11 +104,21 @@ export function createCapabilityBroker(options = {}) {
     createToolAcquisitionStore({
       jasperHome: options.jasperHome,
     });
+  const connectorStore =
+    options.connectorStore ||
+    createConnectorStore({
+      jasperHome: options.jasperHome,
+    });
   const installedProviders =
     options.installedProviders ??
     acquisitionStore
       .listActivatedProviders({ limit: Number.MAX_SAFE_INTEGER })
       .map((provider) => provider.id);
+  const approvedConnectors =
+    options.approvedConnectors ??
+    connectorStore
+      .listApprovedConnectors()
+      .map((connector) => connector.id);
   const capabilityRegistry =
     options.capabilityRegistry || createCapabilityRegistry({ toolRegistry });
   const providerResolver =
@@ -115,7 +126,7 @@ export function createCapabilityBroker(options = {}) {
     createProviderResolver({
       toolRegistry,
       installedProviders,
-      approvedConnectors: options.approvedConnectors,
+      approvedConnectors,
       clawAutoProvision: options.clawAutoProvision,
       mcpAutoProvision: options.mcpAutoProvision,
     });
