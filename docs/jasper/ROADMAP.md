@@ -224,6 +224,7 @@ When work is ambiguous and there is no fresh user guidance:
 
 - `docs/jasper/VISION.md`
 - `docs/jasper/BRAIN_REGIONS.md`
+- `docs/jasper/BRAIN_IN_A_BOX_TEST.md`
 - `docs/jasper/PROJECT_DETAILS.md`
 - `docs/jasper/AUTOMATIC_ONBOARDING.md`
 - `docs/jasper/TOOL_ACQUISITION.md`

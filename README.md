@@ -82,6 +82,7 @@ jasper
 - [**Jasper PRD**](./docs/jasper/PROJECT_DETAILS.md)
 - [**Jasper Vision**](./docs/jasper/VISION.md)
 - [**Jasper Brain Regions**](./docs/jasper/BRAIN_REGIONS.md)
+- [**Brain-In-A-Box Test**](./docs/jasper/BRAIN_IN_A_BOX_TEST.md)
 - [**Jasper Roadmap**](./docs/jasper/ROADMAP.md)
 - [**Jasper Onboarding**](./docs/jasper/AUTOMATIC_ONBOARDING.md)
 - [**Jasper Tool Acquisition**](./docs/jasper/TOOL_ACQUISITION.md)
