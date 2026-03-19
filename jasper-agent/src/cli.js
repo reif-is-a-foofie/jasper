@@ -22,6 +22,7 @@ import { createDigestReporter } from "./digest.js";
 import { createWorkflowManager } from "./workflows.js";
 import { createStrategicMemoryManager } from "./strategic-memory.js";
 import { createDashboard } from "./dashboard.js";
+import { createComputerUseManager } from "./computer-use.js";
 import { createGuardManager, GuardScenarios } from "./guard.js";
 
 function printUsage() {
@@ -72,7 +73,13 @@ function printUsage() {
   node jasper-agent/src/cli.js commitments audit [--limit N] [--jasper-home PATH] [--memory-root PATH]
   node jasper-agent/src/cli.js workflows list [--jasper-home PATH] [--memory-root PATH]
   node jasper-agent/src/cli.js workflows run WORKFLOW_ID [--stage NAME] [--auto-approve] [--jasper-home PATH] [--memory-root PATH]
-  node jasper-agent/src/cli.js dashboard [--stage STAGE] [--lookback-hours N] [--event-limit N] [--alert-limit N] [--history-limit N] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js dashboard [--stage STAGE] [--lookback-hours N] [--event-limit N] [--alert-limit N] [--history-limit N] [--dashboard-action-limit N] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan create [--action-title TEXT] [--action-steps TEXT] [--action-description TEXT] [--action-context TEXT] [--requires-approval] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan list [--limit N] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan status PLAN_ID [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan approve PLAN_ID [--action-description TEXT] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan run PLAN_ID [--action-stage STAGE] [--jasper-home PATH] [--memory-root PATH]
+  node jasper-agent/src/cli.js action plan pending [--limit N] [--jasper-home PATH] [--memory-root PATH]
 `);
 }
 
@@ -242,6 +249,40 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === "--dashboard-action-limit") {
+      options.dashboardActionLimit = Number(args[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (arg === "--action-title") {
+      options.actionTitle = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--action-description") {
+      options.actionDescription = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--action-steps") {
+      options.actionSteps = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--action-context") {
+      options.actionContext = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--requires-approval") {
+      options.requiresApproval = true;
+      continue;
+    }
+    if (arg === "--action-stage") {
+      options.actionStage = args[index + 1];
+      index += 1;
+      continue;
+    }
     if (arg === "--note") {
       options.note = args[index + 1];
       index += 1;
@@ -264,6 +305,16 @@ function parseArgs(argv) {
 
 function printJson(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function parseActionSteps(value) {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function summarizeConnectors(connectors) {
@@ -294,6 +345,17 @@ function summarizeWorkflows(view) {
   return rows.join("\n  ");
 }
 
+function summarizePlans(view) {
+  const rows = [];
+  for (const plan of view.actionPlans || []) {
+    rows.push(`${plan.title || plan.planId} [${plan.status}]`);
+  }
+  if (rows.length === 0) {
+    return "No computer action plans yet";
+  }
+  return rows.join("\n  ");
+}
+
 async function renderDashboard(globalOptions = {}) {
   const viewOptions = {
     stage: globalOptions.dashboardStage,
@@ -301,6 +363,7 @@ async function renderDashboard(globalOptions = {}) {
     eventLimit: globalOptions.dashboardEventLimit,
     alertLimit: globalOptions.dashboardAlertLimit,
     historyLimit: globalOptions.dashboardHistoryLimit,
+    actionLimit: globalOptions.dashboardActionLimit,
   };
   const dashboard = createDashboard({
     jasperHome: globalOptions.jasperHome,
@@ -326,6 +389,7 @@ async function renderDashboard(globalOptions = {}) {
   process.stdout.write(
     `\nStrategic summary: ${view.strategicAudit.summary} (${view.strategicAudit.totalCommitments} commitments, ${view.strategicAudit.contradictions.length} contradictions)\n`,
   );
+  process.stdout.write(`\nAction plans:\n  ${summarizePlans(view)}\n`);
   return view;
 }
 
@@ -959,6 +1023,86 @@ async function main() {
 
     printUsage();
     return;
+  }
+
+  if (command === "action") {
+    const [actionTopic, ...actionArgs] = rest;
+    const actionOptions = parseArgs(actionArgs);
+    const manager = createComputerUseManager({
+      memoryRoot: actionOptions.memoryRoot || options.memoryRoot,
+      jasperHome: actionOptions.jasperHome || options.jasperHome,
+    });
+
+    if (actionTopic === "plan") {
+      const [planSubcommand, planId] = actionOptions.positionals;
+
+      if (planSubcommand === "create") {
+        const plan = manager.createPlan({
+          title: actionOptions.actionTitle,
+          description: actionOptions.actionDescription,
+          steps: parseActionSteps(actionOptions.actionSteps),
+          context: actionOptions.actionContext,
+          requiresApproval: Boolean(actionOptions.requiresApproval),
+        });
+        printJson(plan);
+        return;
+      }
+
+      if (planSubcommand === "list") {
+        printJson(
+          manager.listPlans({
+            limit: actionOptions.limit,
+          }),
+        );
+        return;
+      }
+
+      if (planSubcommand === "status") {
+        if (!planId) {
+          throw new Error("Plan status requires a PLAN_ID");
+        }
+        const plan = manager.getPlan(planId);
+        if (!plan) {
+          throw new Error(`Unknown plan: ${planId}`);
+        }
+        printJson(plan);
+        return;
+      }
+
+      if (planSubcommand === "approve") {
+        if (!planId) {
+          throw new Error("Plan approve requires a PLAN_ID");
+        }
+        printJson(
+          manager.approvePlan(planId, actionOptions.actionDescription),
+        );
+        return;
+      }
+
+      if (planSubcommand === "run") {
+        if (!planId) {
+          throw new Error("Plan run requires a PLAN_ID");
+        }
+        printJson(
+          manager.runPlan({
+            planId,
+            stage: actionOptions.actionStage,
+          }),
+        );
+        return;
+      }
+
+      if (planSubcommand === "pending") {
+        printJson(
+          manager.listPendingApprovals({
+            limit: actionOptions.limit,
+          }),
+        );
+        return;
+      }
+    }
+
+    throw new Error("Action command requires a recognized topic");
   }
 
   if (command === "commitments") {

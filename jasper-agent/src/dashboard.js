@@ -4,6 +4,7 @@ import { createDigestReporter } from "./digest.js";
 import { createWorkflowManager } from "./workflows.js";
 import { createGuardManager } from "./guard.js";
 import { createStrategicMemoryManager } from "./strategic-memory.js";
+import { createComputerUseManager } from "./computer-use.js";
 
 function defaultEventStore(options = {}) {
   return createEventStore({
@@ -48,6 +49,12 @@ export function createDashboard(options = {}) {
       memory,
       jasperHome: options.jasperHome,
     });
+  const computerUseManager =
+    options.computerUseManager ||
+    createComputerUseManager({
+      memory,
+      jasperHome: options.jasperHome,
+    });
   const fetchAppStatus = options.fetchAppStatus || defaultFetchAppStatus;
 
   return {
@@ -84,6 +91,9 @@ export function createDashboard(options = {}) {
       const strategicAudit = strategicManager.auditCommitments({
         limit: viewOptions.strategicLimit ?? 40,
       });
+      const actionPlans = computerUseManager.listPlans({
+        limit: viewOptions.actionLimit ?? 4,
+      });
 
       return {
         timestamp: new Date().toISOString(),
@@ -97,6 +107,7 @@ export function createDashboard(options = {}) {
         activeWorkflows: workflowManager.listWorkflows(),
         workflowHistory,
         strategicAudit,
+        actionPlans,
       };
     },
   };

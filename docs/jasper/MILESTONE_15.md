@@ -35,20 +35,26 @@ Milestone 15 should remain primarily Jasper-owned:
 
 Any fork patches should stay limited to computer-use seams Jasper cannot yet own externally.
 
+## Task checklist
+
+- **Action plans.** Use `jasper action plan create --action-title "Download statement" --action-steps "open bank site;download statement" --requires-approval` to log the desired computer task and record it in `memory` under `computer-use.plan`.
+- **Approval-aware execution.** Run `jasper action plan list` and `jasper action plan status PLAN_ID` to review the steps, then `jasper action plan approve PLAN_ID` before running `jasper action plan run PLAN_ID` so the automation stops at approval boundaries until authorized.
+- **Session replay and audit trail.** Inspect `jasper memory recent --type computer-use.execution` and `jasper memory recent --type computer-use.step` to see the recorded actions, and confirm that every execution entry references the plan ID, stage, and step statuses.
+- **Operator takeover.** Use `jasper action plan pending` to surface action plans still waiting for approval, so the operator can steer or cancel them manually.
+- **Dashboard visibility.** Run `jasper` (dashboard) and confirm the cockpit lists the digest, connectors, guard alerts, workflows, strategic summary, and new “Action plans” section summarizing the most recent computer-use requests.
+
 ## Verification
 
 ```bash
 jasper
+jasper action plan list
+jasper action plan approve PLAN_ID
+jasper action plan run PLAN_ID
+jasper action plan pending
+jasper memory recent --type computer-use.execution
 ```
-
-Run live prompts:
-
-1. `download the latest bank statement PDF and file it in the taxes folder`
-2. `open the county site and tell me the parcel tax due date`
-3. `book the earliest available DMV appointment that fits my calendar and stop before final confirmation`
 
 Expected outcome:
 
-- Jasper explains the plan briefly and executes the routine steps
-- sensitive actions pause for approval
-- every action is reviewable after the fact
+- Jasper explains the plan and its steps, pauses for approvals, and records what it did in the audit trail.
+- The dashboard keeps showing daily state so the operator feels the terminal is now the default command center.

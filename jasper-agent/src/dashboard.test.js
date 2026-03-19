@@ -59,6 +59,15 @@ test("dashboard render aggregates digest, guard, connectors, workflows, strategi
         contradictions: [],
       }),
     },
+    computerUseManager: {
+      listPlans: () => [
+        {
+          planId: "plan-1",
+          title: "Plan 1",
+          status: "open",
+        },
+      ],
+    },
     fetchAppStatus: () => ({
       connectors: [
         { id: "calendar", needsAttention: true },
@@ -74,4 +83,5 @@ test("dashboard render aggregates digest, guard, connectors, workflows, strategi
   assert.strictEqual(view.pendingApprovals.length, 1);
   assert.equal(view.strategicAudit.summary, "ok");
   assert.strictEqual(view.workflowHistory.length, 1);
+  assert.strictEqual(view.actionPlans.length, 1);
 });
