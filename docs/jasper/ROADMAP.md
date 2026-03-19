@@ -115,6 +115,7 @@ This region secures permissions, trust, self-evaluation, and long-run reliabilit
 24. **Milestone 24: Local Appliance And Always-On Reliability** — Status: planned. Outcome: Jasper runs like a dependable local product with managed services, restart resilience, and low-friction updates.
 29. **Milestone 29: Federated Household And Team Intelligence** — Status: planned. Outcome: Jasper coordinates across households, operators, or small teams without flattening trust boundaries.
 30. **Milestone 30: Self-Sustaining Personal Intelligence System** — Status: planned. Outcome: Jasper becomes a continuously improving, always-available intelligence layer that preserves and amplifies operator capability.
+31. **Milestone 31: JARVIS Qualification Framework** — Status: planned. Outcome: Jasper defines and operationalizes the test stack required to claim JARVIS-level quality, including public benchmarks, private holdouts, longitudinal evals, and real-life trust measures.
 
 ## Operating Rule For Unattended Development
 
