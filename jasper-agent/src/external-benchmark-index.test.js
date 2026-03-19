@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  describeExternalBenchmarkQueue,
   JasperExternalBenchmarkStore,
   buildExternalBenchmarkTemplate,
   computeExternalBenchmarkIndex,
@@ -35,10 +36,20 @@ function createFakeMemory() {
 test("template includes the full benchmark basket", () => {
   const template = buildExternalBenchmarkTemplate();
   const benchmarks = listExternalBenchmarks();
+  const totalWeight = Object.values(template.weights).reduce(
+    (sum, value) => sum + Number(value),
+    0,
+  );
 
   assert.equal(template.results.length, benchmarks.length);
-  assert.equal(template.weights.terminal_bench, 18);
+  assert.equal(template.weights.terminal_bench, 12);
+  assert.equal(totalWeight, 100);
   assert.ok(template.results.some((entry) => entry.benchmarkId === "gaia"));
+  assert.ok(
+    template.results.some(
+      (entry) => entry.benchmarkId === "webarena_verified",
+    ),
+  );
 });
 
 test("imported results produce weighted index and coverage", () => {
@@ -89,9 +100,9 @@ test("imported results produce weighted index and coverage", () => {
   assert.equal(imported.skippedCount, 1);
   assert.equal(index.coveredBenchmarks, 2);
   assert.equal(index.weightMode, "override_file");
-  assert.equal(index.coveragePercent, 31.37);
-  assert.equal(index.coveredScore, 72.5);
-  assert.equal(index.indexScore, 22.75);
+  assert.equal(index.coveragePercent, 25.93);
+  assert.equal(index.coveredScore, 74.29);
+  assert.equal(index.indexScore, 19.26);
   assert.ok(
     memory
       .readEvents()
@@ -124,4 +135,14 @@ test("latest result wins when the same benchmark is recorded twice", () => {
 
   assert.equal(terminalBench.scorePercent, 70);
   assert.equal(index.coveredBenchmarks, 1);
+});
+
+test("benchmark queue is ordered by priority and starts with the wired runner", () => {
+  const queue = describeExternalBenchmarkQueue();
+
+  assert.equal(queue[0].id, "terminal_bench");
+  assert.equal(queue[0].integrationStatus, "running");
+  assert.equal(queue[0].runnerPath, "scripts/run_terminal_bench_with_jasper.py");
+  assert.equal(queue[1].id, "swe_bench_verified");
+  assert.equal(queue.at(-1).id, "asb");
 });

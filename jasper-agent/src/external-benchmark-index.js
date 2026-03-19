@@ -2,85 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensureJasperHomeLayout } from "../../jasper-core/src/home.js";
 import { createEventStore } from "../../jasper-memory/src/event-store.js";
-
-const EXTERNAL_BENCHMARKS = [
-  {
-    id: "terminal_bench",
-    label: "Terminal-Bench",
-    weight: 18,
-    area: "terminal_execution",
-    sourceUrl: "https://github.com/laude-institute/terminal-bench",
-    description: "Terminal task execution with verifier-backed outcomes.",
-  },
-  {
-    id: "swe_bench_verified",
-    label: "SWE-bench Verified",
-    weight: 18,
-    area: "software_engineering",
-    sourceUrl: "https://github.com/SWE-bench/SWE-bench",
-    description:
-      "Real software issue resolution against verified SWE-bench tasks.",
-  },
-  {
-    id: "tau3_bench",
-    label: "tau-bench",
-    weight: 14,
-    area: "tool_agent_interaction",
-    sourceUrl: "https://github.com/sierra-research/tau-bench",
-    description:
-      "Tool-agent-user interaction across realistic policy and API tasks.",
-  },
-  {
-    id: "gaia",
-    label: "GAIA",
-    weight: 12,
-    area: "general_assistant",
-    sourceUrl: "https://huggingface.co/gaia-benchmark",
-    description:
-      "General assistant benchmark with multi-step reasoning and tool use.",
-  },
-  {
-    id: "appworld",
-    label: "AppWorld",
-    weight: 12,
-    area: "multi_app_workflows",
-    sourceUrl: "https://github.com/StonyBrookNLP/appworld",
-    description:
-      "Controllable multi-app world for function-calling and coding agents.",
-  },
-  {
-    id: "workarena",
-    label: "WorkArena",
-    weight: 10,
-    area: "browser_knowledge_work",
-    sourceUrl: "https://github.com/ServiceNow/WorkArena",
-    description: "Browser-based knowledge-work tasks on ServiceNow.",
-  },
-  {
-    id: "osworld",
-    label: "OSWorld",
-    weight: 8,
-    area: "computer_use",
-    sourceUrl: "https://github.com/xlang-ai/OSWorld",
-    description: "Open-ended multimodal computer-use benchmark.",
-  },
-  {
-    id: "macosworld",
-    label: "macOSWorld",
-    weight: 4,
-    area: "mac_computer_use",
-    sourceUrl: "https://github.com/showlab/macosworld",
-    description: "macOS-native GUI benchmark for interactive agents.",
-  },
-  {
-    id: "asb",
-    label: "Agent Security Bench",
-    weight: 4,
-    area: "agent_security",
-    sourceUrl: "https://github.com/agiresearch/ASB",
-    description: "Security benchmark for attacks and defenses in LLM agents.",
-  },
-];
+import {
+  effectiveExternalBenchmarks,
+  findExternalBenchmark,
+  listExternalBenchmarkQueue,
+} from "./external-benchmark-catalog.js";
 
 function appendJsonLine(filePath, value) {
   fs.appendFileSync(filePath, `${JSON.stringify(value)}\n`, "utf8");
@@ -245,10 +171,7 @@ function loadWeightOverrides(filePath) {
 }
 
 function effectiveBenchmarks(weightOverrides = {}) {
-  return EXTERNAL_BENCHMARKS.map((benchmark) => ({
-    ...benchmark,
-    weight: toFiniteNumber(weightOverrides[benchmark.id]) ?? benchmark.weight,
-  }));
+  return effectiveExternalBenchmarks(weightOverrides);
 }
 
 function recordSortKey(record) {
@@ -281,13 +204,19 @@ function createTemplateResult(benchmark) {
 }
 
 export function listExternalBenchmarks(weightOverrides = {}) {
-  return effectiveBenchmarks(weightOverrides).map((benchmark) => ({
-    id: benchmark.id,
-    label: benchmark.label,
-    area: benchmark.area,
-    weight: benchmark.weight,
-    sourceUrl: benchmark.sourceUrl,
-    description: benchmark.description,
+  return effectiveBenchmarks(weightOverrides);
+}
+
+export function describeExternalBenchmarkQueue(weightOverrides = {}) {
+  const effectiveById = new Map(
+    effectiveBenchmarks(weightOverrides).map((benchmark) => [
+      benchmark.id,
+      benchmark,
+    ]),
+  );
+  return listExternalBenchmarkQueue().map((benchmark) => ({
+    ...benchmark,
+    weight: effectiveById.get(benchmark.id)?.weight ?? benchmark.weight,
   }));
 }
 
@@ -335,9 +264,7 @@ export class JasperExternalBenchmarkStore {
     const benchmarkId = normalizeBenchmarkId(
       input.benchmarkId || input.id || input.benchmark,
     );
-    const benchmark = EXTERNAL_BENCHMARKS.find(
-      (entry) => entry.id === benchmarkId,
-    );
+    const benchmark = findExternalBenchmark(benchmarkId);
     if (!benchmark) {
       throw new Error(
         `Unknown external benchmark: ${benchmarkId || "missing"}`,
@@ -462,8 +389,16 @@ export function computeExternalBenchmarkIndex(options = {}) {
       label: benchmark.label,
       area: benchmark.area,
       weight: benchmark.weight,
+      priority: benchmark.priority,
+      integrationStatus: benchmark.integrationStatus,
+      runMode: benchmark.runMode,
+      setupEffort: benchmark.setupEffort,
       sourceUrl: benchmark.sourceUrl,
+      runnerGuideUrl: benchmark.runnerGuideUrl,
+      runnerPath: benchmark.runnerPath,
       description: benchmark.description,
+      whyItMatters: benchmark.whyItMatters,
+      nextAction: benchmark.nextAction,
       status: result ? "recorded" : "missing",
       scorePercent: result?.scorePercent ?? null,
       coveredWeight: result ? benchmark.weight : 0,

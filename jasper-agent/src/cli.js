@@ -26,6 +26,7 @@ import { createDashboard } from "./dashboard.js";
 import { createComputerUseManager } from "./computer-use.js";
 import { createCommsManager } from "./comms.js";
 import {
+  describeExternalBenchmarkQueue,
   JasperExternalBenchmarkStore,
   buildExternalBenchmarkTemplate,
   computeExternalBenchmarkIndex,
@@ -75,7 +76,7 @@ function printUsage() {
   node jasper-agent/src/cli.js broker capabilities
   node jasper-agent/src/cli.js broker inspect QUERY [--identity PATH] [--memory-root PATH] [--tools-root PATH]
   node jasper-agent/src/cli.js audit brain-in-a-box [--jasper-home PATH] [--memory-root PATH] [--tools-root PATH] [--identity PATH]
-  node jasper-agent/src/cli.js audit benchmark-index [list|scaffold|import FILE] [--jasper-home PATH] [--memory-root PATH] [--weights-file PATH]
+  node jasper-agent/src/cli.js audit benchmark-index [list|queue|scaffold|import FILE] [--jasper-home PATH] [--memory-root PATH] [--weights-file PATH]
   node jasper-agent/src/cli.js digest [STAGE] [--lookback-hours N] [--event-limit N] [--jasper-home PATH] [--memory-root PATH]
   node jasper-agent/src/cli.js guard status [--limit N] [--jasper-home PATH] [--memory-root PATH]
   node jasper-agent/src/cli.js guard simulate SCENARIO_ID [--note TEXT] [--jasper-home PATH] [--memory-root PATH]
@@ -1016,6 +1017,11 @@ async function main() {
         return;
       }
 
+      if (auditSubcommand === "queue" || auditSubcommand === "plan") {
+        printJson(describeExternalBenchmarkQueue());
+        return;
+      }
+
       if (auditSubcommand === "scaffold" || auditSubcommand === "template") {
         printJson(buildExternalBenchmarkTemplate());
         return;
@@ -1046,7 +1052,7 @@ async function main() {
       }
 
       throw new Error(
-        "Audit benchmark-index supports 'list', 'scaffold', or 'import FILE'.",
+        "Audit benchmark-index supports 'list', 'queue', 'scaffold', or 'import FILE'.",
       );
     }
 

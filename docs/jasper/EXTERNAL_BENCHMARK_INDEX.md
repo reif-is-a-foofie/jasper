@@ -20,12 +20,16 @@ The current default basket is:
 
 - `Terminal-Bench` — terminal execution
 - `SWE-bench Verified` — software engineering task resolution
-- `tau-bench` — tool-agent-user interaction
-- `GAIA` — broad assistant reasoning and tool use
 - `AppWorld` — multi-app workflow execution
+- `tau-bench` — tool-agent-user interaction
+- `GAIA2` — broad assistant reasoning and tool use
 - `WorkArena` — browser-based knowledge work
+- `WebArena Verified` — general browser task execution
+- `AssistantBench` — practical open-web assistant tasks
+- `VisualWebArena` — visual browser task execution
 - `OSWorld` — open-ended computer use
 - `macOSWorld` — macOS-native computer use
+- `AndroidWorld` — mobile computer use
 - `Agent Security Bench` — agent security and attack resistance
 
 ## Scoring
@@ -48,6 +52,12 @@ List the default basket:
 
 ```bash
 jasper audit benchmark-index list
+```
+
+Print the prioritized benchmark integration queue:
+
+```bash
+jasper audit benchmark-index queue
 ```
 
 Print a template import file:
@@ -80,6 +90,32 @@ Optionally override weights from a JSON file:
 ```bash
 jasper audit benchmark-index --weights-file weights.json
 ```
+
+## Queue
+
+Jasper now tracks not just the weighted basket, but also the recommended integration order.
+
+Current order:
+
+1. `Terminal-Bench`
+2. `SWE-bench Verified`
+3. `AppWorld`
+4. `tau-bench`
+5. `GAIA2`
+6. `WorkArena`
+7. `WebArena Verified`
+8. `AssistantBench`
+9. `VisualWebArena`
+10. `OSWorld`
+11. `macOSWorld`
+12. `AndroidWorld`
+13. `Agent Security Bench`
+
+The intent is:
+
+- wire high-signal, high-reproducibility suites first
+- reuse shared harnesses where possible, especially `BrowserGym`
+- delay the most infrastructure-heavy GUI suites until browser and terminal runners are stable
 
 ## Import Format
 
@@ -132,3 +168,8 @@ Imported external benchmark results are stored under Jasper home in:
 ```
 
 Each imported result also records a memory event so Jasper can reason about evaluation history over time.
+
+## Supporting Docs
+
+- [Terminal-Bench Runner](/Users/reif/Desktop/not-secret-projects/jasper/docs/jasper/TERMINAL_BENCH_RUNNER.md)
+- [Benchmark Queue](/Users/reif/Desktop/not-secret-projects/jasper/docs/jasper/BENCHMARK_QUEUE.md)
